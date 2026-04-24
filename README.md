@@ -1,73 +1,73 @@
-# React + TypeScript + Vite
+# BookIt Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend de la plataforma de gestión de salones de eventos y servicios complementarios.
 
-Currently, two official plugins are available:
+## Descripción
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Aplicación web desarrollada en **React + TypeScript** con **Vite**, orientada a la interacción de usuarios con la plataforma BookIt. Permite la búsqueda de salones y servicios, autenticación de usuarios, gestión de reservas y visualización de información.
 
-## React Compiler
+## Stack tecnológico
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React 19** – UI
+- **TypeScript** – tipado estático
+- **Vite** – bundler y servidor de desarrollo
+- **React Router v7** – navegación del lado del cliente
+- **Axios** – cliente HTTP con interceptores JWT
 
-## Expanding the ESLint configuration
+## Estructura del proyecto
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── api/          # Cliente Axios configurado
+├── components/   # Componentes reutilizables (Layout, ProtectedRoute)
+├── context/      # AuthContext (estado global de autenticación)
+├── hooks/        # Custom hooks (useAuth)
+├── pages/        # Páginas de la aplicación
+├── routes/       # Configuración de React Router
+├── services/     # Llamadas a la API REST
+├── types/        # Interfaces TypeScript
+└── utils/        # Utilidades (navegación programática)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Requisitos previos
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Node.js ≥ 18
+- npm ≥ 9
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Configuración
+
+1. Copiar el archivo de variables de entorno:
+   ```bash
+   cp .env.example .env
+   ```
+2. Editar `.env` y configurar la URL del backend:
+   ```
+   VITE_API_BASE_URL=http://localhost:5000/api
+   ```
+
+## Instalación
+
+```bash
+npm install
 ```
+
+## Scripts disponibles
+
+| Comando             | Descripción                              |
+| ------------------- | ---------------------------------------- |
+| `npm run dev`       | Inicia el servidor de desarrollo         |
+| `npm run build`     | Genera el build de producción en `dist/` |
+| `npm run lint`      | Ejecuta ESLint                           |
+| `npm run preview`   | Previsualiza el build de producción      |
+
+## Rutas
+
+| Ruta                 | Acceso    | Descripción                  |
+| -------------------- | --------- | ---------------------------- |
+| `/`                  | Público   | Página de inicio             |
+| `/login`             | Público   | Inicio de sesión             |
+| `/register`          | Público   | Registro de usuarios         |
+| `/services/register` | Protegido | Registro de servicios        |
+
+Las rutas protegidas redirigen a `/login` si el usuario no está autenticado.
+
