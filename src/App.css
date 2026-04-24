@@ -1,0 +1,270 @@
+/* ── Layout ─────────────────────────────────────────── */
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.layout-header {
+  background-color: #1e293b;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.layout-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.layout-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.layout-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.layout-nav-links a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.layout-nav-links a:hover {
+  color: #f8fafc;
+}
+
+.layout-user {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.layout-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+.btn-primary {
+  display: inline-block;
+  background-color: #38bdf8;
+  color: #0f172a;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #7dd3fc;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-block;
+  background-color: transparent;
+  color: #38bdf8;
+  border: 2px solid #38bdf8;
+  border-radius: 6px;
+  padding: 0.55rem 1.3rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #38bdf8;
+  color: #0f172a;
+}
+
+.btn-logout {
+  background: none;
+  border: none;
+  color: #f87171;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-logout:hover {
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+/* ── Auth forms ──────────────────────────────────────── */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  background-color: #1e293b;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.auth-card h1 {
+  font-size: 1.6rem;
+  margin-bottom: 1.5rem;
+  color: #f8fafc;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f8fafc;
+  font-size: 0.95rem;
+  padding: 0.6rem 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #38bdf8;
+}
+
+.form-group input:disabled,
+.form-group textarea:disabled,
+.form-group select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-group select option {
+  background-color: #1e293b;
+}
+
+.auth-form .btn-primary {
+  margin-top: 0.5rem;
+  width: 100%;
+  text-align: center;
+}
+
+.auth-error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.7rem 1rem;
+}
+
+.auth-success {
+  background-color: rgba(34, 197, 94, 0.15);
+  border: 1px solid #22c55e;
+  border-radius: 6px;
+  color: #86efac;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.7rem 1rem;
+}
+
+.auth-footer {
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.auth-footer a {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ── Home page ───────────────────────────────────────── */
+.home-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.home-hero {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.home-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 1rem;
+}
+
+.home-hero p {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  margin-bottom: 2rem;
+}
+
+.home-cta {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Loading screen ──────────────────────────────────── */
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
