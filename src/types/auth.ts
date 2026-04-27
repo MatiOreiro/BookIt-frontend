@@ -4,9 +4,23 @@ export interface LoginRequest {
 }
 
 export interface RegisterUserRequest {
-  name: string;
-  email: string;
-  password: string;
+  Nombre: string;
+  Telefono: string;
+  Email: string;
+  Password: string;
+  Rol?: string;
+}
+
+export interface RegisterVendorRequest {
+  Nombre: string;
+  Telefono: string;
+  Email: string;
+  Password: string;
+  NombreServicio: string;
+  DescripcionServicio: string;
+  Ubicacion: string;
+  PrecioMinimo: number;
+  PrecioMaximo: number;
 }
 
 export interface AuthResponse {

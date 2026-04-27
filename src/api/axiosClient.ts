@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { navigate } from '../utils/navigation';
 
+const resolvedBaseUrl =
+  import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:5062';
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api',
+  baseURL: resolvedBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },

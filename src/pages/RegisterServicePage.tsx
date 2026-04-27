@@ -1,28 +1,30 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { registerService } from '../services/serviceService';
+import { Link, useNavigate } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
+import { registerVendor } from '../services/authService';
 import axios from 'axios';
-
-const SERVICE_CATEGORIES = [
-  'Catering',
-  'Fotografía',
-  'Música',
-  'Decoración',
-  'Iluminación',
-  'Seguridad',
-  'Otro',
-];
 
 const RegisterServicePage = () => {
   const navigate = useNavigate();
+  const { setAuthData } = useAuth();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nombreServicio, setNombreServicio] = useState('');
+  const [descripcionServicio, setDescripcionServicio] = useState('');
+  const [ubicacion, setUbicacion] = useState('');
+  const [precioMinimo, setPrecioMinimo] = useState('');
+  const [precioMaximo, setPrecioMaximo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isVendorRole = (role: string) => {
+    const normalizedRole = role.toLowerCase();
+    return normalizedRole === 'vendedor' || normalizedRole === 'vendor' || normalizedRole === 'salon';
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,14 +33,20 @@ const RegisterServicePage = () => {
     setIsLoading(true);
 
     try {
-      await registerService({
-        name,
-        description,
-        price: parseFloat(price),
-        category,
+      const data = await registerVendor({
+        Nombre: nombre,
+        Telefono: telefono,
+        Email: email,
+        Password: password,
+        NombreServicio: nombreServicio,
+        DescripcionServicio: descripcionServicio,
+        Ubicacion: ubicacion,
+        PrecioMinimo: Number.parseFloat(precioMinimo),
+        PrecioMaximo: Number.parseFloat(precioMaximo),
       });
+      setAuthData(data.token, data.user);
       setSuccess(true);
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate(isVendorRole(data.user.role) ? '/vendor/dashboard' : '/'), 1500);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         setError(
@@ -66,12 +74,65 @@ const RegisterServicePage = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="name">Nombre del servicio</label>
+            <label htmlFor="nombre">Nombre completo</label>
             <input
-              id="name"
+              id="nombre"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Nombre y apellido"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="telefono">Teléfono</label>
+            <input
+              id="telefono"
+              type="tel"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              placeholder="09XXXXXXXX"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Correo electrónico</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              disabled={isLoading}
+              minLength={8}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="nombreServicio">Nombre del servicio</label>
+            <input
+              id="nombreServicio"
+              type="text"
+              value={nombreServicio}
+              onChange={(e) => setNombreServicio(e.target.value)}
               placeholder="Ej: Catering premium"
               required
               disabled={isLoading}
@@ -79,11 +140,11 @@ const RegisterServicePage = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="description">Descripción</label>
+            <label htmlFor="descripcionServicio">Descripción</label>
             <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              id="descripcionServicio"
+              value={descripcionServicio}
+              onChange={(e) => setDescripcionServicio(e.target.value)}
               placeholder="Describí tu servicio..."
               required
               disabled={isLoading}
@@ -92,12 +153,25 @@ const RegisterServicePage = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="price">Precio (USD)</label>
+            <label htmlFor="ubicacion">Ubicación</label>
             <input
-              id="price"
+              id="ubicacion"
+              type="text"
+              value={ubicacion}
+              onChange={(e) => setUbicacion(e.target.value)}
+              placeholder="Montevideo, Pocitos"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="precioMinimo">Precio mínimo</label>
+            <input
+              id="precioMinimo"
               type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              value={precioMinimo}
+              onChange={(e) => setPrecioMinimo(e.target.value)}
               placeholder="0.00"
               required
               disabled={isLoading}
@@ -107,27 +181,32 @@ const RegisterServicePage = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="category">Categoría</label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+            <label htmlFor="precioMaximo">Precio máximo</label>
+            <input
+              id="precioMaximo"
+              type="number"
+              value={precioMaximo}
+              onChange={(e) => setPrecioMaximo(e.target.value)}
+              placeholder="0.00"
               required
               disabled={isLoading}
-            >
-              <option value="">Seleccioná una categoría</option>
-              {SERVICE_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              min="0"
+              step="0.01"
+            />
           </div>
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? 'Registrando...' : 'Registrar servicio'}
+            {isLoading ? 'Registrando...' : 'Registrar salón'}
           </button>
         </form>
+
+        <p className="auth-footer auth-footer--secondary">
+          ¿Querés registrarte como usuario?{' '}
+          <Link to="/register/user">Ir al registro de usuario</Link>
+        </p>
+        <p className="auth-footer auth-footer--secondary">
+          <Link to="/register">Volver a elegir tipo de registro</Link>
+        </p>
       </div>
     </div>
   );

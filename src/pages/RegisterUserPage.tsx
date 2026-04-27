@@ -8,7 +8,8 @@ const RegisterUserPage = () => {
   const navigate = useNavigate();
   const { setAuthData } = useAuth();
 
-  const [name, setName] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -27,7 +28,13 @@ const RegisterUserPage = () => {
     setIsLoading(true);
 
     try {
-      const data = await registerUser({ name, email, password });
+      const data = await registerUser({
+        Nombre: nombre,
+        Telefono: telefono,
+        Email: email,
+        Password: password,
+        Rol: 'usuario',
+      });
       setAuthData(data.token, data.user);
       navigate('/');
     } catch (err: unknown) {
@@ -52,13 +59,26 @@ const RegisterUserPage = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="name">Nombre completo</label>
+            <label htmlFor="nombre">Nombre completo</label>
             <input
-              id="name"
+              id="nombre"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
               placeholder="Juan Pérez"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="telefono">Teléfono</label>
+            <input
+              id="telefono"
+              type="tel"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              placeholder="09XXXXXXXX"
               required
               disabled={isLoading}
             />
@@ -113,6 +133,13 @@ const RegisterUserPage = () => {
         <p className="auth-footer">
           ¿Ya tenés cuenta?{' '}
           <Link to="/login">Iniciá sesión aquí</Link>
+        </p>
+        <p className="auth-footer auth-footer--secondary">
+          ¿Querés publicar un salón?{' '}
+          <Link to="/register/service">Ir al registro de salón</Link>
+        </p>
+        <p className="auth-footer auth-footer--secondary">
+          <Link to="/register">Volver a elegir tipo de registro</Link>
         </p>
       </div>
     </div>

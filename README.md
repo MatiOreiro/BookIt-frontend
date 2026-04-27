@@ -37,13 +37,19 @@ src/
 ## Configuración
 
 1. Copiar el archivo de variables de entorno:
-   ```bash
-   cp .env.example .env
+   ```powershell
+   Copy-Item .env.example .env
    ```
 2. Editar `.env` y configurar la URL del backend:
    ```
-   VITE_API_BASE_URL=http://localhost:5000/api
+   VITE_API_BASE_URL=http://localhost:5062
    ```
+
+En despliegue (por ejemplo Vercel), configurar la misma variable con la URL pública del backend:
+
+```
+VITE_API_BASE_URL=https://tu-backend-publico.vercel.app
+```
 
 ## Instalación
 

@@ -4,10 +4,14 @@ import type { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  allowedRoles?: string[];
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  const normalizedRole = user?.role.toLowerCase();
+  const normalizedAllowedRoles = allowedRoles?.map((role) => role.toLowerCase());
 
   if (isLoading) {
     return (
@@ -19,6 +23,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (
+    normalizedAllowedRoles &&
+    normalizedAllowedRoles.length > 0 &&
+    (!normalizedRole || !normalizedAllowedRoles.includes(normalizedRole))
+  ) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

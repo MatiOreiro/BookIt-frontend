@@ -17,10 +17,38 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const normalizeStoredUser = (value: unknown): User | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const id = candidate.id ?? candidate.Id;
+  const name = candidate.name ?? candidate.Nombre ?? candidate.nombre;
+  const email = candidate.email ?? candidate.Email ?? candidate.email;
+  const role = candidate.role ?? candidate.Rol ?? candidate.rol;
+
+  if (
+    typeof id !== 'string' ||
+    typeof name !== 'string' ||
+    typeof email !== 'string' ||
+    typeof role !== 'string'
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    email,
+    role: role.toLowerCase(),
+  };
+};
+
 const getStoredUser = (): User | null => {
   try {
     const raw = localStorage.getItem('user');
-    return raw ? (JSON.parse(raw) as User) : null;
+    return raw ? normalizeStoredUser(JSON.parse(raw)) : null;
   } catch {
     return null;
   }

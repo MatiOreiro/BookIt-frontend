@@ -3,8 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import Layout from '../components/Layout';
 import ProtectedRoute from '../components/ProtectedRoute';
 import LoginPage from '../pages/LoginPage';
+import RegisterChoicePage from '../pages/RegisterChoicePage';
 import RegisterUserPage from '../pages/RegisterUserPage';
 import RegisterServicePage from '../pages/RegisterServicePage';
+import VendorDashboardPage from '../pages/VendorDashboardPage';
 import HomePage from '../pages/HomePage';
 import { setNavigate } from '../utils/navigation';
 
@@ -25,7 +27,9 @@ const AppRouter = () => {
           {/* Public routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterUserPage />} />
+          <Route path="/register" element={<RegisterChoicePage />} />
+          <Route path="/register/user" element={<RegisterUserPage />} />
+          <Route path="/register/service" element={<RegisterServicePage />} />
 
           {/* Protected routes */}
           <Route
@@ -33,6 +37,14 @@ const AppRouter = () => {
             element={
               <ProtectedRoute>
                 <RegisterServicePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendor/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['vendedor', 'vendor', 'salon']}>
+                <VendorDashboardPage />
               </ProtectedRoute>
             }
           />

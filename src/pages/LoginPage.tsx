@@ -13,6 +13,11 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const isVendorRole = (role: string) => {
+    const normalizedRole = role.toLowerCase();
+    return normalizedRole === 'vendedor' || normalizedRole === 'vendor' || normalizedRole === 'salon';
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -21,7 +26,7 @@ const LoginPage = () => {
     try {
       const data = await login({ email, password });
       setAuthData(data.token, data.user);
-      navigate('/');
+      navigate(isVendorRole(data.user.role) ? '/vendor/dashboard' : '/');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         setError(
