@@ -1,6 +1,7 @@
 import apiClient from '../api/axiosClient';
 import type {
   AuthResponse,
+  ChangePasswordRequest,
   LoginRequest,
   RegisterVendorRequest,
   RegisterUserRequest,
@@ -57,6 +58,12 @@ export const registerVendor = async (
 ): Promise<AuthResponse> => {
   const response = await apiClient.post<BackendAuthResponse>('/auth/register-vendor', data);
   return normalizeAuthResponse(response.data);
+};
+
+export const changePassword = async (
+  data: ChangePasswordRequest,
+): Promise<void> => {
+  await apiClient.post('/users/me/change-password', data);
 };
 
 export const logout = (): void => {

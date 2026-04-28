@@ -140,6 +140,10 @@ a {
   flex-wrap: wrap;
 }
 
+.app-user-menu {
+  position: relative;
+}
+
 .app-user-chip {
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
@@ -147,6 +151,38 @@ a {
   color: var(--primary-strong);
   font-weight: 600;
   white-space: nowrap;
+}
+
+.app-user-chip--button {
+  border: 0;
+  cursor: pointer;
+}
+
+.app-user-menu__dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 220px;
+  padding: 0.45rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 20;
+}
+
+.app-user-menu__item {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 0.95rem;
+  border-radius: 0.8rem;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.app-user-menu__item:hover {
+  background: rgba(122, 44, 255, 0.08);
 }
 
 .app-button {
@@ -367,6 +403,10 @@ a {
   font-size: 2rem;
   letter-spacing: -0.03em;
   color: var(--text);
+}
+
+.auth-card--wide {
+  width: min(560px, 100%);
 }
 
 .auth-card > p {

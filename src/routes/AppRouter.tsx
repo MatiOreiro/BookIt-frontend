@@ -6,6 +6,7 @@ import LoginPage from '../pages/LoginPage';
 import RegisterChoicePage from '../pages/RegisterChoicePage';
 import RegisterUserPage from '../pages/RegisterUserPage';
 import RegisterServicePage from '../pages/RegisterServicePage';
+import ChangePasswordPage from '../pages/ChangePasswordPage';
 import VendorDashboardPage from '../pages/VendorDashboardPage';
 import HomePage from '../pages/HomePage';
 import { setNavigate } from '../utils/navigation';
@@ -30,6 +31,14 @@ const AppRouter = () => {
           <Route path="/register" element={<RegisterChoicePage />} />
           <Route path="/register/user" element={<RegisterUserPage />} />
           <Route path="/register/service" element={<RegisterServicePage />} />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Protected routes */}
           <Route

@@ -23,6 +23,12 @@ export interface RegisterVendorRequest {
   PrecioMaximo: number;
 }
 
+export interface ChangePasswordRequest {
+  CurrentPassword: string;
+  NewPassword: string;
+  ConfirmNewPassword: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;
