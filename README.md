@@ -42,13 +42,13 @@ src/
    ```
 2. Editar `.env` y configurar la URL del backend:
    ```
-   VITE_API_BASE_URL=http://localhost:5062
+   VITE_API_BASE_URL=https://bookit-backend-es10.onrender.com/
    ```
 
 En despliegue (por ejemplo Vercel), configurar la misma variable con la URL pública del backend:
 
 ```
-VITE_API_BASE_URL=https://tu-backend-publico.vercel.app
+VITE_API_BASE_URL=https://bookit-backend-es10.onrender.com/
 ```
 
 ## Instalación
