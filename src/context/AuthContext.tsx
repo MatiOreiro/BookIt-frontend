@@ -1,6 +1,7 @@
 import {
   createContext,
   useState,
+  useEffect,
   type ReactNode,
 } from 'react';
 import type { User } from '../types/auth';
@@ -47,6 +48,7 @@ const normalizeStoredUser = (value: unknown): User | null => {
 
 const getStoredUser = (): User | null => {
   try {
+    if (typeof window === 'undefined') return null;
     const raw = localStorage.getItem('user');
     return raw ? normalizeStoredUser(JSON.parse(raw)) : null;
   } catch {
@@ -59,10 +61,17 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(getStoredUser);
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem('token'),
-  );
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+    try {
+      setToken(typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    } catch {
+      setToken(null);
+    }
+  }, []);
 
   const setAuthData = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
