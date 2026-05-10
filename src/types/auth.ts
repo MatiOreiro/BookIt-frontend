@@ -19,8 +19,11 @@ export interface RegisterVendorRequest {
   NombreServicio: string;
   DescripcionServicio: string;
   Ubicacion: string;
+  TipoServicio: string;
   PrecioMinimo: number;
   PrecioMaximo: number;
+  CategoryIds?: string[];
+  TagIds?: string[];
 }
 
 export interface ChangePasswordRequest {

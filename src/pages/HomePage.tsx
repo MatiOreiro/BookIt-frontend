@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import { navigate } from '../utils/navigation';
 
 const HomePage = () => {
   const [eventDate, setEventDate] = useState('');
-  const [eventType, setEventType] = useState('Bodas');
-  const [zone, setZone] = useState('Pocitos');
-  const [guests, setGuests] = useState('50-100');
+  const [eventType, setEventType] = useState('');
+  const [zone, setZone] = useState('');
+  const [guests, setGuests] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const filters = useMemo(
@@ -18,9 +18,18 @@ const HomePage = () => {
     [eventDate, eventType, zone, guests],
   );
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitted(true);
+
+    const params = new URLSearchParams();
+    if (eventDate) params.set('date', eventDate);
+    if (eventType) params.set('category', eventType);
+    if (zone) params.set('zone', zone);
+    if (guests) params.set('guests', guests);
+
+    const query = params.toString();
+    navigate('/lounges' + (query ? `?${query}` : ''));
   };
 
   return (
@@ -50,33 +59,36 @@ const HomePage = () => {
               <label className="search-field">
                 <span>Tipo de evento</span>
                 <select value={eventType} onChange={(e) => setEventType(e.target.value)}>
-                  <option>Bodas</option>
-                  <option>Cumpleaños</option>
-                  <option>Corporativos</option>
-                  <option>Quince años</option>
-                  <option>Eventos sociales</option>
+                  <option value="">Seleccionar tipo</option>
+                  <option value="Bodas">Bodas</option>
+                  <option value="Cumpleaños">Cumpleaños</option>
+                  <option value="Corporativos">Corporativos</option>
+                  <option value="Quince años">Quince años</option>
+                  <option value="Eventos sociales">Eventos sociales</option>
                 </select>
               </label>
 
               <label className="search-field">
                 <span>Zona</span>
                 <select value={zone} onChange={(e) => setZone(e.target.value)}>
-                  <option>Pocitos</option>
-                  <option>Carrasco</option>
-                  <option>Centro</option>
-                  <option>Parque Rodó</option>
-                  <option>Ciudad Vieja</option>
+                  <option value="">Seleccionar zona</option>
+                  <option value="Pocitos">Pocitos</option>
+                  <option value="Carrasco">Carrasco</option>
+                  <option value="Centro">Centro</option>
+                  <option value="Parque Rodó">Parque Rodó</option>
+                  <option value="Ciudad Vieja">Ciudad Vieja</option>
                 </select>
               </label>
 
               <label className="search-field">
                 <span>Invitados</span>
                 <select value={guests} onChange={(e) => setGuests(e.target.value)}>
-                  <option>Hasta 50</option>
-                  <option>50-100</option>
-                  <option>100-200</option>
-                  <option>200-300</option>
-                  <option>Más de 300</option>
+                  <option value="">Seleccionar cantidad</option>
+                  <option value="Hasta 50">Hasta 50</option>
+                  <option value="50-100">50-100</option>
+                  <option value="100-200">100-200</option>
+                  <option value="200-300">200-300</option>
+                  <option value="Más de 300">Más de 300</option>
                 </select>
               </label>
             </div>
@@ -86,9 +98,9 @@ const HomePage = () => {
             </button>
 
             {submitted && (
-              <p className="search-card__status" role="status">
+              <output className="search-card__status" aria-live="polite">
                 Búsqueda lista: {filters.map((filter) => `${filter.label}: ${filter.value}`).join(' · ')}
-              </p>
+              </output>
             )}
           </form>
         </div>

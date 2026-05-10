@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { navigate } from '../utils/navigation';
 
-const resolvedBaseUrl =
-  (process.env.NEXT_PUBLIC_API_BASE_URL as string)?.trim() || 'https://bookit-backend-es10.onrender.com/';
+const resolvedBaseUrl = '/api/backend';
 
 const apiClient = axios.create({
   baseURL: resolvedBaseUrl,

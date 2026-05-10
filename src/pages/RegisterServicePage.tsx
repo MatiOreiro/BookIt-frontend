@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { registerVendor } from '../services/authService';
+import { getEventCategories, getTags, type CatalogOption } from '../services/catalogService';
 import axios from 'axios';
 
 const RegisterServicePage = () => {
@@ -15,21 +16,85 @@ const RegisterServicePage = () => {
   const [nombreServicio, setNombreServicio] = useState('');
   const [descripcionServicio, setDescripcionServicio] = useState('');
   const [ubicacion, setUbicacion] = useState('');
+  const [tipoServicio, setTipoServicio] = useState('');
   const [precioMinimo, setPrecioMinimo] = useState('');
   const [precioMaximo, setPrecioMaximo] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [selectedTagId, setSelectedTagId] = useState('');
+  const [categories, setCategories] = useState<CatalogOption[]>([]);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [tags, setTags] = useState<CatalogOption[]>([]);
+  const [tagsError, setTagsError] = useState<string | null>(null);
+  const [isTagsLoading, setIsTagsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const selectedType = useMemo(() => tipoServicio.trim(), [tipoServicio]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesResponse = await getEventCategories();
+        setCategories(categoriesResponse);
+      } catch (catalogError) {
+        console.error('Error cargando catálogos de servicio', catalogError);
+        setCategories([]);
+        setCategoriesError('No se pudieron cargar las categorías disponibles. Seguí con el formulario sin categorías.');
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const loadTags = async () => {
+      if (selectedType !== 'Servicio' || tags.length > 0 || isTagsLoading) {
+        return;
+      }
+
+      setIsTagsLoading(true);
+      setTagsError(null);
+
+      try {
+        const tagsResponse = await getTags();
+        setTags(tagsResponse);
+      } catch (catalogError) {
+        console.error('Error cargando tags de servicio', catalogError);
+        setTagsError('No se pudieron cargar los tags desde el backend.');
+      } finally {
+        setIsTagsLoading(false);
+      }
+    };
+
+    loadTags();
+  }, [isTagsLoading, selectedType, tags.length]);
 
   const isVendorRole = (role: string) => {
     const normalizedRole = role.toLowerCase();
     return normalizedRole === 'vendedor' || normalizedRole === 'vendor' || normalizedRole === 'salon';
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
+
+    if (!selectedType) {
+      setError('Seleccioná un tipo de servicio.');
+      return;
+    }
+
+    if (selectedType === 'Servicio' && selectedCategoryIds.length === 0) {
+      setError('Para un servicio, seleccioná al menos una categoría.');
+      return;
+    }
+
+    if (selectedType === 'Servicio' && tags.length > 0 && !selectedTagId) {
+      setError('Seleccioná el tag del servicio.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -41,8 +106,11 @@ const RegisterServicePage = () => {
         NombreServicio: nombreServicio,
         DescripcionServicio: descripcionServicio,
         Ubicacion: ubicacion,
+        TipoServicio: selectedType,
         PrecioMinimo: Number.parseFloat(precioMinimo),
         PrecioMaximo: Number.parseFloat(precioMaximo),
+        CategoryIds: selectedCategoryIds,
+        TagIds: selectedTagId ? [selectedTagId] : undefined,
       });
       setAuthData(data.token, data.user);
       setSuccess(true);
@@ -60,10 +128,24 @@ const RegisterServicePage = () => {
     }
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategoryIds((current) =>
+      current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId],
+    );
+  };
+
+  const isServiceType = selectedType === 'Servicio';
+
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <h1>Registrar servicio</h1>
+      <div className="auth-card auth-card--wide">
+        <h1>Registrar salón o servicio</h1>
+        <p>
+          Completá los datos básicos y elegí el tipo de servicio. Las categorías se pueden
+          seleccionar con un solo clic y, si elegís Servicio, vas a poder elegir también un tag.
+        </p>
 
         {error && <div className="auth-error">{error}</div>}
         {success && (
@@ -166,6 +248,93 @@ const RegisterServicePage = () => {
           </div>
 
           <div className="form-group">
+            <label htmlFor="tipoServicio">Tipo de servicio</label>
+            <select
+              id="tipoServicio"
+              value={tipoServicio}
+              onChange={(e) => {
+                const nextType = e.target.value;
+                setTipoServicio(nextType);
+                if (nextType !== 'Servicio') {
+                  setSelectedTagId('');
+                }
+              }}
+              required
+              disabled={isLoading}
+            >
+              <option value="">Seleccionar tipo</option>
+              <option value="Salón">Salón</option>
+              <option value="Servicio">Servicio</option>
+            </select>
+          </div>
+
+          <fieldset className="form-group form-group--fieldset">
+            <legend className="form-group__legend">Categorías</legend>
+            <span className="form-group__hint">
+              Seleccioná una o varias categorías sin usar combinaciones especiales.
+            </span>
+
+            <div className="selection-grid" aria-label="Categorías de evento">
+              {categories.map((category) => {
+                const isSelected = selectedCategoryIds.includes(category.id);
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    className={isSelected ? 'selection-chip is-selected' : 'selection-chip'}
+                    onClick={() => toggleCategory(category.id)}
+                    disabled={isLoading}
+                    aria-pressed={isSelected}
+                  >
+                    {category.name}
+                  </button>
+                );
+              })}
+              {categories.length === 0 && !error && (
+                <div className="selection-empty">Cargando categorías disponibles...</div>
+              )}
+            </div>
+          </fieldset>
+
+          {isServiceType && (
+            <fieldset className="form-group form-group--fieldset">
+              <legend className="form-group__legend">Tag del servicio</legend>
+              <span className="form-group__hint">
+                Elegí el tag que mejor describa el servicio que ofrecés.
+              </span>
+
+              {tagsError && <div className="auth-error">{tagsError}</div>}
+
+              <div className="selection-radio-grid" aria-label="Tags del servicio">
+                {isTagsLoading && tags.length === 0 && (
+                  <div className="selection-empty">Cargando tags disponibles...</div>
+                )}
+                {tags.map((tag) => {
+                  const isSelected = selectedTagId === tag.id;
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      className={isSelected ? 'selection-radio is-selected' : 'selection-radio'}
+                      onClick={() => setSelectedTagId(tag.id)}
+                      disabled={isLoading}
+                      aria-pressed={isSelected}
+                    >
+                      <strong>{tag.name}</strong>
+                      <span>Disponible para tu publicación</span>
+                    </button>
+                  );
+                })}
+                {!isTagsLoading && tags.length === 0 && !tagsError && (
+                  <div className="selection-empty">
+                    Si no ves tags todavía, seguí con el formulario y volvé a intentarlo más tarde.
+                  </div>
+                )}
+              </div>
+            </fieldset>
+          )}
+
+          <div className="form-group">
             <label htmlFor="precioMinimo">Precio mínimo</label>
             <input
               id="precioMinimo"
@@ -196,7 +365,7 @@ const RegisterServicePage = () => {
           </div>
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? 'Registrando...' : 'Registrar salón'}
+            {isLoading ? 'Registrando...' : 'Registrar servicio'}
           </button>
         </form>
 

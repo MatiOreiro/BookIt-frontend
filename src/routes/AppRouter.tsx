@@ -9,6 +9,7 @@ import RegisterServicePage from '../pages/RegisterServicePage';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import VendorDashboardPage from '../pages/VendorDashboardPage';
 import HomePage from '../pages/HomePage';
+import ServicesListPage from '../pages/ServicesListPage';
 import { setNavigate } from '../utils/navigation';
 
 const NavigationRegistrar = () => {
@@ -31,6 +32,8 @@ const AppRouter = () => {
           <Route path="/register" element={<RegisterChoicePage />} />
           <Route path="/register/user" element={<RegisterUserPage />} />
           <Route path="/register/service" element={<RegisterServicePage />} />
+          <Route path="/lounges" element={<ServicesListPage />} />
+          <Route path="/services" element={<Navigate to="/lounges" replace />} />
           <Route
             path="/change-password"
             element={
