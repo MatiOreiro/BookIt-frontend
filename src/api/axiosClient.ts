@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { navigate } from '../utils/navigation';
 
-const resolvedBaseUrl = '/api/backend';
+const resolvedBaseUrl = 'http://localhost:7213';
 
 const apiClient = axios.create({
   baseURL: resolvedBaseUrl,

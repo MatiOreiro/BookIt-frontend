@@ -26,6 +26,10 @@ const RegisterServicePage = () => {
   const [tags, setTags] = useState<CatalogOption[]>([]);
   const [tagsError, setTagsError] = useState<string | null>(null);
   const [isTagsLoading, setIsTagsLoading] = useState(false);
+  const [capacidad, setCapacidad] = useState('');
+  const [mostrarCapacidad, setMostrarCapacidad] = useState(false);
+  const [direccion, setDireccion] = useState('');
+  const [mostrarDireccion, setMostrarDireccion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -111,6 +115,8 @@ const RegisterServicePage = () => {
         PrecioMaximo: Number.parseFloat(precioMaximo),
         CategoryIds: selectedCategoryIds,
         TagIds: selectedTagId ? [selectedTagId] : undefined,
+        ...(capacidad && { Capacidad: Number.parseInt(capacidad) }),
+        ...(direccion && { Direccion: direccion }),
       });
       setAuthData(data.token, data.user);
       setSuccess(true);
@@ -363,6 +369,85 @@ const RegisterServicePage = () => {
               step="0.01"
             />
           </div>
+
+          {!mostrarCapacidad && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setMostrarCapacidad(true)}
+              disabled={isLoading}
+            >
+              + Agregar capacidad
+            </button>
+          )}
+
+          {mostrarCapacidad && (
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label htmlFor="capacidad">Capacidad</label>
+                <button
+                  type="button"
+                  className="btn-text"
+                  onClick={() => {
+                    setMostrarCapacidad(false);
+                    setCapacidad('');
+                  }}
+                  disabled={isLoading}
+                  style={{ padding: '0', fontSize: '0.9rem' }}
+                >
+                  Remover
+                </button>
+              </div>
+              <input
+                id="capacidad"
+                type="number"
+                value={capacidad}
+                onChange={(e) => setCapacidad(e.target.value)}
+                placeholder="Ej: 150"
+                disabled={isLoading}
+                min="0"
+              />
+            </div>
+          )}
+
+          {!mostrarDireccion && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setMostrarDireccion(true)}
+              disabled={isLoading}
+            >
+              + Agregar dirección específica
+            </button>
+          )}
+
+          {mostrarDireccion && (
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label htmlFor="direccion">Dirección específica</label>
+                <button
+                  type="button"
+                  className="btn-text"
+                  onClick={() => {
+                    setMostrarDireccion(false);
+                    setDireccion('');
+                  }}
+                  disabled={isLoading}
+                  style={{ padding: '0', fontSize: '0.9rem' }}
+                >
+                  Remover
+                </button>
+              </div>
+              <input
+                id="direccion"
+                type="text"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                placeholder="Dirección detallada del servicio"
+                disabled={isLoading}
+              />
+            </div>
+          )}
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
             {isLoading ? 'Registrando...' : 'Registrar servicio'}
