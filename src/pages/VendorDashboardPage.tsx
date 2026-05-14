@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CldUploadButton } from 'next-cloudinary';
 
 type DashboardView = 'lista' | 'calendario';
 
@@ -29,6 +30,8 @@ const VendorDashboardPage = () => {
               </article>
             ))}
           </div>
+
+          <CldUploadButton uploadPreset="fullstack-preset" />
 
           <div className="vendor-dashboard__switcher" role="tablist" aria-label="Vista del dashboard">
             <button
