@@ -1,4 +1,5 @@
 import apiClient from '../api/axiosClient';
+import axios from 'axios';
 
 interface BackendCatalogItem {
   Id?: string;
@@ -24,7 +25,11 @@ export const getEventCategories = async (): Promise<CatalogOption[]> => {
     const response = await apiClient.get<BackendCatalogItem[]>('/event-categories');
     return response.data.map(normalizeCatalogItem);
   } catch (err) {
-    console.error('getEventCategories failed', err);
+    if (axios.isAxiosError(err)) {
+      console.error('getEventCategories failed', err.response?.status, err.response?.data);
+    } else {
+      console.error('getEventCategories failed', err);
+    }
     return [];
   }
 };
@@ -34,7 +39,11 @@ export const getTags = async (): Promise<CatalogOption[]> => {
     const response = await apiClient.get<BackendCatalogItem[]>('/tags');
     return response.data.map(normalizeCatalogItem);
   } catch (err) {
-    console.error('getTags failed', err);
+    if (axios.isAxiosError(err)) {
+      console.error('getTags failed', err.response?.status, err.response?.data);
+    } else {
+      console.error('getTags failed', err);
+    }
     return [];
   }
 };

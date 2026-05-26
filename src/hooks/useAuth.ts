@@ -8,6 +8,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   setAuthData: (token: string, user: User) => void;
+  refreshUser: () => Promise<User | null>;
   logout: () => void;
 }
 

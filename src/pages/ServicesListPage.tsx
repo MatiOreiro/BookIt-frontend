@@ -1,14 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getServices } from '../services/serviceService';
 import type { Service } from '../types/service';
 
+const normalizeType = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+const matchesMode = (serviceType: string, isServicesMode: boolean) => {
+  const normalized = normalizeType(serviceType);
+  return isServicesMode
+    ? normalized.includes('servicio')
+    : normalized.includes('salon');
+};
+
 const ServicesListPage = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isServicesMode = location.pathname.startsWith('/services');
   // Filter state (temp - pending application)
   const [minPriceFilter, setMinPriceFilter] = useState('');
   const [maxPriceFilter, setMaxPriceFilter] = useState('');
@@ -17,10 +34,10 @@ const ServicesListPage = () => {
 
   // Applied filters (what's actually being used for search)
   const [appliedFilters, setAppliedFilters] = useState({
-    minPrice: undefined as number | undefined,
-    maxPrice: undefined as number | undefined,
-    location: (searchParams.get('zone') || '') as string,
-    guests: (searchParams.get('guests') || '') as string,
+    minPrice: undefined,
+    maxPrice: undefined,
+    location: searchParams.get('zone') || '',
+    guests: searchParams.get('guests') || '',
   });
 
   // Extract unique locations for suggestions
@@ -43,12 +60,15 @@ const ServicesListPage = () => {
         };
 
         const data = await getServices(filters);
+        const typedData = data.filter((service) =>
+          matchesMode(service.tipoServicio, isServicesMode),
+        );
         
         // Filter by guests on client-side if guests filter is selected
         // In a real scenario, this would be server-side filtered
         // For now, we'll keep all results as capacity info isn't available
         // You might want to add capacity to the Service type later
-        setServices(data);
+        setServices(typedData);
       } catch {
         setError('Error al cargar los salones');
       } finally {
@@ -57,7 +77,7 @@ const ServicesListPage = () => {
     };
 
     fetchServices();
-  }, [appliedFilters, searchParams]);
+  }, [appliedFilters, isServicesMode, searchParams]);
 
   const handleApplyFilters = () => {
     const minPrice = minPriceFilter ? Number.parseFloat(minPriceFilter) : undefined;
@@ -87,12 +107,18 @@ const ServicesListPage = () => {
   const activeFilters = [minPriceFilter, maxPriceFilter, zonaFilter, invitadosFilter].filter(
     Boolean,
   ).length;
+  const searchSuffix = searchParams.toString() ? `?${searchParams.toString()}` : '';
+  const serviceLabel = isServicesMode ? 'servicio' : 'salón';
+  const serviceLabelPlural = isServicesMode ? 'servicios' : 'salones';
+  const serviceCountLabel = services.length === 1
+    ? `1 ${serviceLabel} disponible`
+    : `${services.length} ${serviceLabelPlural} disponibles`;
 
   return (
     <div className="services-page">
       <div className="services-page__header">
-        <h1>Salones para eventos en Montevideo</h1>
-        <p className="services-page__subtitle">{services.length} salón{services.length !== 1 ? 'es' : ''} disponible{services.length !== 1 ? 's' : ''}</p>
+        <h1>{isServicesMode ? 'Servicios para eventos en Montevideo' : 'Salones para eventos en Montevideo'}</h1>
+        <p className="services-page__subtitle">{serviceCountLabel}</p>
       </div>
 
       <div className="services-page__container">
@@ -153,9 +179,12 @@ const ServicesListPage = () => {
           </div>
 
           <div className="filter-group">
-            <label className="filter-label">Rango de precio</label>
+            <label htmlFor="precio-minimo" className="filter-label">
+              Rango de precio
+            </label>
             <div className="price-inputs">
               <input
+                id="precio-minimo"
                 type="number"
                 placeholder="Precio mínimo"
                 value={minPriceFilter}
@@ -201,7 +230,7 @@ const ServicesListPage = () => {
 
           {!loading && !error && services.length === 0 && (
             <div className="services-empty">
-              <p>No se encontraron salones con los filtros aplicados.</p>
+              <p>No se encontraron resultados con los filtros aplicados.</p>
               <button className="btn-primary" onClick={handleClearFilters}>
                 Limpiar filtros
               </button>
@@ -213,7 +242,11 @@ const ServicesListPage = () => {
               {services.map((service) => (
                 <div key={service.id} className="service-card">
                   <div className="service-card__image">
-                    <div className="service-card__placeholder">📷</div>
+                    {service.imagenes?.[0] ? (
+                      <img src={service.imagenes[0]} alt={service.nombre} />
+                    ) : (
+                      <div className="service-card__placeholder">📷</div>
+                    )}
                   </div>
 
                   <div className="service-card__content">
@@ -249,7 +282,12 @@ const ServicesListPage = () => {
                         <span className="price-label">desde</span>
                         <span className="price-value">${(service.precioMinimo ?? 0).toLocaleString()}</span>
                       </div>
-                      <button className="service-card__cta">Ver más</button>
+                      <button
+                        className="service-card__cta"
+                        onClick={() => navigate(`${isServicesMode ? '/services' : '/lounges'}/${service.id}${searchSuffix}`, { state: { service } })}
+                      >
+                        Ver más
+                      </button>
                     </div>
                   </div>
                 </div>

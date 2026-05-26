@@ -1,16 +1,257 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ProtectedRoute from '../components/ProtectedRoute';
 import LoginPage from '../pages/LoginPage';
-import RegisterChoicePage from '../pages/RegisterChoicePage';
 import RegisterUserPage from '../pages/RegisterUserPage';
 import RegisterServicePage from '../pages/RegisterServicePage';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
+import ProfilePage from '../pages/ProfilePage';
 import VendorDashboardPage from '../pages/VendorDashboardPage';
+import ServiceOwnerDashboardPage from '../pages/ServiceOwnerDashboardPage';
 import HomePage from '../pages/HomePage';
 import ServicesListPage from '../pages/ServicesListPage';
+import { getServiceById } from '../services/serviceService';
+import type { Service } from '../types/service';
 import { setNavigate } from '../utils/navigation';
+
+const currencyFormatter = new Intl.NumberFormat('es-UY');
+
+const buildWhatsAppUrl = (phone?: string) => {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  return digits ? `https://wa.me/${digits}` : null;
+};
+
+const buildMapUrl = (service?: Service) => {
+  const query = [service?.nombre, service?.ubicacion].filter(Boolean).join(', ');
+  return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=16&output=embed`;
+};
+
+const getServiceMainImage = (service?: Service) => service?.imagenes?.[0] ?? null;
+
+const ServiceDetailPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isServicesRoute = location.pathname.startsWith('/services/');
+  const listPath = isServicesRoute ? '/services' : '/lounges';
+  const serviceFromState = (location.state as { service?: Service } | null | undefined)?.service;
+  const [service, setService] = useState<Service | null>(serviceFromState ?? null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchService = async () => {
+      if (serviceFromState) {
+        setService(serviceFromState);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      if (!id) {
+        setError('No se encontró el servicio solicitado.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const foundService = await getServiceById(id);
+
+        if (!foundService) {
+          setError('No se encontró el servicio solicitado.');
+        }
+
+        setService(foundService);
+      } catch {
+        setError('No se pudo cargar el detalle del servicio.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchService();
+  }, [id, serviceFromState]);
+
+  const mapUrl = useMemo(() => buildMapUrl(service ?? undefined), [service]);
+  const whatsappUrl = useMemo(
+    () => buildWhatsAppUrl(service?.vendor?.telefono),
+    [service],
+  );
+  const mailTo = useMemo(() => {
+    const email = service?.vendor?.email;
+    if (!email) {
+      return null;
+    }
+
+    const subject = encodeURIComponent(`Consulta por ${service?.nombre ?? 'el servicio'}`);
+    return `mailto:${email}?subject=${subject}`;
+  }, [service]);
+  return (
+    <div className="service-detail-page">
+      <div className="service-detail-page__shell">
+        <button type="button" className="service-detail-page__back" onClick={() => navigate(`${listPath}${location.search}`)}>
+          ← Volver a resultados
+        </button>
+
+        {loading && (
+          <div className="service-detail-page__state">
+            <p>Cargando detalle del servicio...</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="service-detail-page__state service-detail-page__state--error">
+            <p role="alert">{error}</p>
+            <button type="button" className="btn-primary" onClick={() => navigate(listPath)}>
+              Volver al listado
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && service && (
+          <div className="service-detail">
+            <section className="service-detail__hero">
+              <div className="service-detail__gallery">
+                <div className="service-detail__main-image">
+                  {getServiceMainImage(service) ? (
+                    <img src={getServiceMainImage(service) ?? undefined} alt={service.nombre} />
+                  ) : null}
+                  <div className="service-detail__main-image-overlay">
+                    <span className="service-detail__eyebrow">{service.tipoServicio || 'Salón para eventos'}</span>
+                    <h1>{service.nombre}</h1>
+                    <p>{service.ubicacion || 'Ubicación no especificada'}</p>
+                  </div>
+                </div>
+
+                <div className="service-detail__thumbs" aria-label="Galería del servicio">
+                  {(service.imagenes?.length ?? 0) > 1
+                    ? service.imagenes.slice(1, 6).map((imageUrl, index) => (
+                        <div key={imageUrl} className={`service-detail__thumb service-detail__thumb--${index + 1}`}>
+                          <img src={imageUrl} alt={`${service.nombre} ${index + 2}`} />
+                        </div>
+                      ))
+                    : ['Ambiente', 'Montaje', 'Iluminación', 'Recepción', 'Vista general'].map((label, index) => (
+                        <div key={label} className={`service-detail__thumb service-detail__thumb--${index + 1}`}>
+                          <span>{label}</span>
+                        </div>
+                      ))}
+                </div>
+              </div>
+
+              <aside className="service-detail__summary">
+                <div className="service-detail__price-block">
+                  <span className="service-detail__price-label">Precio desde</span>
+                  <div className="service-detail__price">$ {currencyFormatter.format(service.precioMinimo)}</div>
+                  {service.precioMaximo > service.precioMinimo && (
+                    <p className="service-detail__price-range">
+                      Hasta $ {currencyFormatter.format(service.precioMaximo)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="service-detail__contact-list">
+                  {service.vendor?.telefono && (
+                    <a className="service-detail__contact-item" href={`tel:${service.vendor.telefono}`}>
+                      <span>📞</span>
+                      <span>{service.vendor.telefono}</span>
+                    </a>
+                  )}
+
+                  {service.vendor?.email && (
+                    <a className="service-detail__contact-item" href={`mailto:${service.vendor.email}`}>
+                      <span>✉️</span>
+                      <span>{service.vendor.email}</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="service-detail__cta-stack">
+                  {whatsappUrl ? (
+                    <a className="service-detail__cta service-detail__cta--whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer">
+                      Consultar por WhatsApp
+                    </a>
+                  ) : (
+                    <button type="button" className="service-detail__cta service-detail__cta--whatsapp" disabled>
+                      Consultar por WhatsApp
+                    </button>
+                  )}
+
+                  {mailTo ? (
+                    <a className="service-detail__cta service-detail__cta--primary" href={mailTo}>
+                      Solicitar cotización
+                    </a>
+                  ) : (
+                    <button type="button" className="service-detail__cta service-detail__cta--primary" disabled>
+                      Solicitar cotización
+                    </button>
+                  )}
+                </div>
+
+                <p className="service-detail__response-note">Respuesta en menos de 24 horas</p>
+              </aside>
+            </section>
+
+            <section className="service-detail__content">
+              <div className="service-detail__main">
+                <div className="service-detail__section">
+                  <h2>Sobre el salón</h2>
+                  <p>{service.descripcion || 'Este servicio no tiene una descripción detallada cargada todavía.'}</p>
+                </div>
+
+                <div className="service-detail__section">
+                  <h2>Datos generales</h2>
+                  <div className="service-detail__meta-grid">
+                    <div className="service-detail__meta-item">
+                      <span className="service-detail__meta-label">Tipo de servicio</span>
+                      <span className="service-detail__meta-value">{service.tipoServicio || 'No especificado'}</span>
+                    </div>
+                    <div className="service-detail__meta-item">
+                      <span className="service-detail__meta-label">Ubicación</span>
+                      <span className="service-detail__meta-value">{service.ubicacion || 'No especificada'}</span>
+                    </div>
+                    <div className="service-detail__meta-item">
+                      <span className="service-detail__meta-label">Proveedor</span>
+                      <span className="service-detail__meta-value">{service.vendor?.nombre || 'Sin datos de proveedor'}</span>
+                    </div>
+                    <div className="service-detail__meta-item">
+                      <span className="service-detail__meta-label">Estado</span>
+                      <span className="service-detail__meta-value">{service.activo ? 'Activo' : 'Inactivo'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <aside className="service-detail__map-card">
+                <div className="service-detail__section-header">
+                  <h2>Ubicación</h2>
+                  <p>Vista en Google Maps</p>
+                </div>
+
+                <div className="service-detail__map-frame">
+                  <iframe
+                    title={`Mapa de ${service.nombre}`}
+                    src={mapUrl}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allowFullScreen
+                  />
+                </div>
+
+                <a className="service-detail__map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([service.nombre, service.ubicacion].filter(Boolean).join(', '))}`} target="_blank" rel="noreferrer">
+                  Abrir en Google Maps
+                </a>
+              </aside>
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const NavigationRegistrar = () => {
   const nav = useNavigate();
@@ -29,16 +270,26 @@ const AppRouter = () => {
           {/* Public routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterChoicePage />} />
+          <Route path="/register" element={<Navigate to="/register/user" replace />} />
           <Route path="/register/user" element={<RegisterUserPage />} />
-          <Route path="/register/service" element={<RegisterServicePage />} />
+          <Route path="/register/service" element={<Navigate to="/services/register" replace />} />
           <Route path="/lounges" element={<ServicesListPage />} />
-          <Route path="/services" element={<Navigate to="/lounges" replace />} />
+          <Route path="/lounges/:id" element={<ServiceDetailPage />} />
+          <Route path="/services" element={<ServicesListPage />} />
+          <Route path="/services/:id" element={<ServiceDetailPage />} />
           <Route
             path="/change-password"
             element={
               <ProtectedRoute>
                 <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
@@ -49,6 +300,22 @@ const AppRouter = () => {
             element={
               <ProtectedRoute>
                 <RegisterServicePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['vendedor', 'vendor', 'salon']}>
+                <RegisterServicePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendor/services/:id"
+            element={
+              <ProtectedRoute allowedRoles={['vendedor', 'vendor', 'salon']}>
+                <ServiceOwnerDashboardPage />
               </ProtectedRoute>
             }
           />

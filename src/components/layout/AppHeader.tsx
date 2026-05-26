@@ -1,12 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import { getServices } from '../../services/serviceService';
 
 const AppHeader = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const isVendor = user?.role === 'vendedor' || user?.role === 'vendor' || user?.role === 'salon';
+  const [hasService, setHasService] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const loadVendorServices = async () => {
+      if (!isAuthenticated || !isVendor || !user?.id) {
+        setHasService(false);
+        return;
+      }
+
+      try {
+        const services = await getServices();
+        setHasService(
+          services.some(
+            (service) => service.vendorId === user.id || service.vendor?.id === user.id,
+          ),
+        );
+      } catch (error) {
+        console.error('Error verificando servicios del vendedor', error);
+        setHasService(false);
+      }
+    };
+
+    loadVendorServices();
+  }, [isAuthenticated, isVendor, user?.id]);
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
@@ -31,9 +56,12 @@ const AppHeader = () => {
           <NavLink to="/" end className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
             Inicio
           </NavLink>
-          <a className="app-nav__link" href="#hero-search">
-            Buscar
-          </a>
+          <NavLink to="/lounges" className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
+            Salones
+          </NavLink>
+          <NavLink to="/services" className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
+            Servicios
+          </NavLink>
           <a className="app-nav__link" href="#footer">
             Contacto
           </a>
@@ -66,11 +94,14 @@ const AppHeader = () => {
                   </div>
                 )}
               </div>
-              {isVendor && (
+              {isVendor && hasService && (
                 <NavLink to="/vendor/dashboard" className="app-button app-button--ghost">
                   Panel Dueño
                 </NavLink>
               )}
+              <NavLink to="/services/register" className="app-button app-button--ghost">
+                Registrar servicio
+              </NavLink>
               <button type="button" onClick={logout} className="app-button app-button--text">
                 Cerrar sesión
               </button>
@@ -80,7 +111,7 @@ const AppHeader = () => {
               <NavLink to="/login" className="app-button app-button--ghost">
                 Ingresar
               </NavLink>
-              <NavLink to="/register" className="app-button app-button--primary">
+              <NavLink to="/register/user" className="app-button app-button--primary">
                 Registrarse
               </NavLink>
             </>

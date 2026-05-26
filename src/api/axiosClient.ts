@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { navigate } from '../utils/navigation';
 
-const resolvedBaseUrl = 'http://localhost:7213';
+const resolvedBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'http://localhost:5062';
 
 const apiClient = axios.create({
   baseURL: resolvedBaseUrl,

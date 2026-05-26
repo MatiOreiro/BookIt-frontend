@@ -20,7 +20,7 @@ const AppFooter = () => {
           <h2>Explorar</h2>
           <Link to="/">Inicio</Link>
           <Link to="/login">Ingresar</Link>
-          <Link to="/register">Registrarse</Link>
+          <Link to="/register/user">Registrarse</Link>
         </div>
 
         <div className="app-footer__column">

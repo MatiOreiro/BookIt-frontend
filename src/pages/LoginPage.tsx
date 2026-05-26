@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { login } from '../services/authService';
@@ -18,7 +18,7 @@ const LoginPage = () => {
     return normalizedRole === 'vendedor' || normalizedRole === 'vendor' || normalizedRole === 'salon';
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
@@ -81,7 +81,7 @@ const LoginPage = () => {
 
         <p className="auth-footer">
           ¿No tenés cuenta?{' '}
-          <Link to="/register">Registrate aquí</Link>
+          <Link to="/register/user">Registrate aquí</Link>
         </p>
       </div>
     </div>

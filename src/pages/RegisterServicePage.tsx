@@ -1,40 +1,94 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type SyntheticEvent } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
-import { registerVendor } from '../services/authService';
+import { getServiceById, registerService, updateService } from '../services/serviceService';
+import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type DepartamentoOption } from '../services/geographyService';
 import { getEventCategories, getTags, type CatalogOption } from '../services/catalogService';
+import type { Service } from '../types/service';
 import axios from 'axios';
 
 const RegisterServicePage = () => {
   const navigate = useNavigate();
-  const { setAuthData } = useAuth();
+  const { id: serviceId } = useParams();
+  const { user, refreshUser } = useAuth();
 
-  const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [tipoServicio, setTipoServicio] = useState('');
   const [nombreServicio, setNombreServicio] = useState('');
   const [descripcionServicio, setDescripcionServicio] = useState('');
-  const [ubicacion, setUbicacion] = useState('');
-  const [tipoServicio, setTipoServicio] = useState('');
+  const [departamentoId, setDepartamentoId] = useState('');
+  const [barrioId, setBarrioId] = useState('');
+  const [calle, setCalle] = useState('');
   const [precioMinimo, setPrecioMinimo] = useState('');
   const [precioMaximo, setPrecioMaximo] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedTagId, setSelectedTagId] = useState('');
+  const [serviceImages, setServiceImages] = useState<File[]>([]);
+  const [service, setService] = useState<Service | null>(null);
   const [categories, setCategories] = useState<CatalogOption[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [tags, setTags] = useState<CatalogOption[]>([]);
   const [tagsError, setTagsError] = useState<string | null>(null);
   const [isTagsLoading, setIsTagsLoading] = useState(false);
+  const [departamentos, setDepartamentos] = useState<DepartamentoOption[]>([]);
+  const [barrios, setBarrios] = useState<BarrioOption[]>([]);
+  const [isDepartamentosLoading, setIsDepartamentosLoading] = useState(false);
+  const [isBarriosLoading, setIsBarriosLoading] = useState(false);
+  const [departamentosError, setDepartamentosError] = useState<string | null>(null);
+  const [barriosError, setBarriosError] = useState<string | null>(null);
   const [capacidad, setCapacidad] = useState('');
-  const [mostrarCapacidad, setMostrarCapacidad] = useState(false);
-  const [direccion, setDireccion] = useState('');
-  const [mostrarDireccion, setMostrarDireccion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const selectedType = useMemo(() => tipoServicio.trim(), [tipoServicio]);
+  const isEditing = Boolean(serviceId);
+  const selectedType = tipoServicio.trim();
+
+  useEffect(() => {
+    const loadDepartamentos = async () => {
+      setIsDepartamentosLoading(true);
+      setDepartamentosError(null);
+
+      try {
+        const departamentosResponse = await getDepartamentos();
+        setDepartamentos(departamentosResponse);
+      } catch (catalogError) {
+        console.error('Error cargando departamentos', catalogError);
+        setDepartamentos([]);
+        setDepartamentosError('No se pudieron cargar los departamentos.');
+      } finally {
+        setIsDepartamentosLoading(false);
+      }
+    };
+
+    loadDepartamentos();
+  }, []);
+
+  useEffect(() => {
+    const loadBarrios = async () => {
+      if (!departamentoId) {
+        setBarrios([]);
+        setBarrioId('');
+        setBarriosError(null);
+        return;
+      }
+
+      setIsBarriosLoading(true);
+      setBarriosError(null);
+
+      try {
+        const barriosResponse = await getBarriosByDepartamento(departamentoId);
+        setBarrios(barriosResponse);
+      } catch (catalogError) {
+        console.error('Error cargando barrios', catalogError);
+        setBarrios([]);
+        setBarriosError('No se pudieron cargar los barrios del departamento seleccionado.');
+      } finally {
+        setIsBarriosLoading(false);
+      }
+    };
+
+    loadBarrios();
+  }, [departamentoId]);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -74,57 +128,168 @@ const RegisterServicePage = () => {
     loadTags();
   }, [isTagsLoading, selectedType, tags.length]);
 
+  useEffect(() => {
+    const loadServiceForEdit = async () => {
+      if (!serviceId) {
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const loadedService = await getServiceById(serviceId);
+        setService(loadedService);
+
+        setTipoServicio(loadedService.tipoServicio || '');
+        setNombreServicio(loadedService.nombre || '');
+        setDescripcionServicio(loadedService.descripcion || '');
+        setPrecioMinimo(String(loadedService.precioMinimo ?? ''));
+        setPrecioMaximo(String(loadedService.precioMaximo ?? ''));
+        setCapacidad(loadedService.capacidad ? String(loadedService.capacidad) : '');
+        setSelectedCategoryIds(loadedService.categorias?.map((category) => category.id) ?? []);
+
+        const departamentoFromService = loadedService.direccion?.barrio?.departamentoId ?? loadedService.direccion?.departamento?.id ?? '';
+        const barrioFromService = loadedService.direccion?.barrio?.id ?? '';
+
+        setDepartamentoId(departamentoFromService);
+        setBarrioId(barrioFromService);
+        setCalle(loadedService.direccion?.calle || '');
+        setServiceImages([]);
+      } catch (serviceError) {
+        console.error('Error cargando servicio para edición', serviceError);
+        setError('No se pudo cargar el servicio para editarlo.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadServiceForEdit();
+  }, [serviceId]);
+
   const isVendorRole = (role: string) => {
     const normalizedRole = role.toLowerCase();
     return normalizedRole === 'vendedor' || normalizedRole === 'vendor' || normalizedRole === 'salon';
   };
 
-  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const getFormValidationError = (): string | null => {
+    if (!selectedType) {
+      return 'Seleccioná un tipo de servicio.';
+    }
+
+    if (!departamentoId) {
+      return 'Seleccioná un departamento.';
+    }
+
+    if (!barrioId) {
+      return 'Seleccioná un barrio.';
+    }
+
+    if (!calle.trim()) {
+      return 'Ingresá la calle.';
+    }
+
+    if (selectedType === 'Salón') {
+      const capacityValue = Number.parseInt(capacidad, 10);
+      if (!capacidad || !Number.isInteger(capacityValue) || capacityValue < 1) {
+        return 'La capacidad es obligatoria para los salones y debe ser mayor a 0.';
+      }
+    }
+
+    if (selectedType === 'Servicio' && selectedCategoryIds.length === 0) {
+      return 'Para un servicio, seleccioná al menos una categoría.';
+    }
+
+    if (selectedType === 'Servicio' && tags.length > 0 && !selectedTagId) {
+      return 'Seleccioná el tag del servicio.';
+    }
+
+    return null;
+  };
+
+  const buildServicePayload = () => {
+    const departamento = departamentos.find((item) => item.id === departamentoId);
+    const barrio = barrios.find((item) => item.id === barrioId);
+
+    const ubicacion = [calle.trim(), barrio?.nombre, departamento?.nombre]
+      .filter(Boolean)
+      .join(', ');
+
+    return {
+      Nombre: nombreServicio,
+      Descripcion: descripcionServicio,
+      Ubicacion: ubicacion,
+      TipoServicio: selectedType,
+      PrecioMinimo: Number.parseFloat(precioMinimo),
+      PrecioMaximo: Number.parseFloat(precioMaximo),
+      Direccion: {
+        DepartamentoId: departamentoId,
+        BarrioId: barrioId,
+        Calle: calle.trim(),
+      },
+      CategoryIds: selectedCategoryIds,
+      TagIds: selectedTagId ? [selectedTagId] : undefined,
+      ...(capacidad && { Capacidad: Number.parseInt(capacidad) }),
+      Images: serviceImages.length > 0 ? serviceImages : undefined,
+    };
+  };
+
+  const getRedirectPath = (role: string) => {
+    if (serviceId) {
+      return '/vendor/dashboard';
+    }
+
+    return isVendorRole(role) ? '/vendor/dashboard' : '/';
+  };
+
+  let submitButtonLabel = 'Registrar salón o servicio';
+  if (isEditing) {
+    submitButtonLabel = isLoading ? 'Guardando...' : 'Guardar cambios';
+  } else if (isLoading) {
+    submitButtonLabel = 'Registrando...';
+  }
+
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
 
-    if (!selectedType) {
-      setError('Seleccioná un tipo de servicio.');
-      return;
-    }
-
-    if (selectedType === 'Servicio' && selectedCategoryIds.length === 0) {
-      setError('Para un servicio, seleccioná al menos una categoría.');
-      return;
-    }
-
-    if (selectedType === 'Servicio' && tags.length > 0 && !selectedTagId) {
-      setError('Seleccioná el tag del servicio.');
+    const validationError = getFormValidationError();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const data = await registerVendor({
-        Nombre: nombre,
-        Telefono: telefono,
-        Email: email,
-        Password: password,
-        NombreServicio: nombreServicio,
-        DescripcionServicio: descripcionServicio,
-        Ubicacion: ubicacion,
-        TipoServicio: selectedType,
-        PrecioMinimo: Number.parseFloat(precioMinimo),
-        PrecioMaximo: Number.parseFloat(precioMaximo),
-        CategoryIds: selectedCategoryIds,
-        TagIds: selectedTagId ? [selectedTagId] : undefined,
-        ...(capacidad && { Capacidad: Number.parseInt(capacidad) }),
-        ...(direccion && { Direccion: direccion }),
-      });
-      setAuthData(data.token, data.user);
+      const payload = buildServicePayload();
+
+      if (serviceId) {
+        await updateService(serviceId, payload);
+      } else {
+        await registerService(payload);
+      }
+
+      const refreshedUser = serviceId ? null : await refreshUser();
       setSuccess(true);
-      setTimeout(() => navigate(isVendorRole(data.user.role) ? '/vendor/dashboard' : '/'), 1500);
+      const nextRole = refreshedUser?.role ?? user?.role ?? '';
+      setTimeout(() => navigate(getRedirectPath(nextRole)), 1500);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
+        const responseData = err.response?.data as
+          | { message?: string; title?: string; errors?: Record<string, string[]> }
+          | undefined;
+
+        const validationMessages = responseData?.errors
+          ? Object.values(responseData.errors).flat().filter(Boolean)
+          : [];
+
         setError(
-          err.response?.data?.message ?? 'Error al registrar el servicio.',
+          responseData?.message
+            ?? responseData?.title
+            ?? validationMessages[0]
+            ?? 'Error al registrar el servicio.',
         );
       } else {
         setError('Ocurrió un error inesperado.');
@@ -143,79 +308,52 @@ const RegisterServicePage = () => {
   };
 
   const isServiceType = selectedType === 'Servicio';
+  const selectedDepartamento = departamentos.find((item) => item.id === departamentoId);
+  const locationPreview = [calle.trim(), barrios.find((item) => item.id === barrioId)?.nombre, selectedDepartamento?.nombre]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <div className="auth-container">
       <div className="auth-card auth-card--wide">
-        <h1>Registrar salón o servicio</h1>
+        <h1>{isEditing ? 'Editar salón o servicio' : 'Registrar salón o servicio'}</h1>
         <p>
-          Completá los datos básicos y elegí el tipo de servicio. Las categorías se pueden
-          seleccionar con un solo clic y, si elegís Servicio, vas a poder elegir también un tag.
+          {isEditing
+            ? 'Actualizá los datos del servicio y guardá los cambios cuando termines.'
+            : 'Elegí primero el tipo de servicio y completá la dirección con departamento, barrio y calle.'}
         </p>
 
         {error && <div className="auth-error">{error}</div>}
         {success && (
           <div className="auth-success">
-            ¡Servicio registrado exitosamente! Redirigiendo...
+            {isEditing ? '¡Servicio actualizado exitosamente! Redirigiendo...' : '¡Servicio registrado exitosamente! Redirigiendo...'}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="nombre">Nombre completo</label>
-            <input
-              id="nombre"
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre y apellido"
+            <label htmlFor="tipoServicio">Tipo de servicio</label>
+            <select
+              id="tipoServicio"
+              value={tipoServicio}
+              onChange={(e) => {
+                const nextType = e.target.value;
+                setTipoServicio(nextType);
+                if (nextType !== 'Servicio') {
+                  setSelectedTagId('');
+                }
+              }}
               required
               disabled={isLoading}
-            />
+            >
+              <option value="">Seleccionar tipo</option>
+              <option value="Salón">Salón</option>
+              <option value="Servicio">Servicio</option>
+            </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="telefono">Teléfono</label>
-            <input
-              id="telefono"
-              type="tel"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              placeholder="09XXXXXXXX"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="email">Correo electrónico</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={isLoading}
-              minLength={8}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="nombreServicio">Nombre del servicio</label>
+            <label htmlFor="nombreServicio">Nombre del salón o servicio</label>
             <input
               id="nombreServicio"
               type="text"
@@ -241,37 +379,76 @@ const RegisterServicePage = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="ubicacion">Ubicación</label>
+            <label htmlFor="departamento">Departamento</label>
+            <select
+              id="departamento"
+              value={departamentoId}
+              onChange={(e) => {
+                setDepartamentoId(e.target.value);
+                setBarrioId('');
+              }}
+              required
+              disabled={isLoading || isDepartamentosLoading}
+            >
+              <option value="">Seleccionar departamento</option>
+              {departamentos.map((departamento) => (
+                <option key={departamento.id} value={departamento.id}>
+                  {departamento.nombre}
+                </option>
+              ))}
+            </select>
+            {departamentosError && <div className="auth-error">{departamentosError}</div>}
+          </div>
+
+          {departamentoId && (
+            <div className="form-group">
+              <label htmlFor="barrio">Barrio</label>
+              <select
+                id="barrio"
+                value={barrioId}
+                onChange={(e) => setBarrioId(e.target.value)}
+                required
+                disabled={isLoading || isBarriosLoading || barrios.length === 0}
+              >
+                <option value="">Seleccionar barrio</option>
+                {barrios.map((barrio) => (
+                  <option key={barrio.id} value={barrio.id}>
+                    {barrio.nombre}
+                  </option>
+                ))}
+              </select>
+              {isBarriosLoading && <span className="form-group__hint">Cargando barrios...</span>}
+              {barriosError && <div className="auth-error">{barriosError}</div>}
+              {!isBarriosLoading && barrios.length === 0 && !barriosError && (
+                <span className="form-group__hint">
+                  No hay barrios disponibles para este departamento.
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="calle">Calle</label>
             <input
-              id="ubicacion"
+              id="calle"
               type="text"
-              value={ubicacion}
-              onChange={(e) => setUbicacion(e.target.value)}
-              placeholder="Montevideo, Pocitos"
+              value={calle}
+              onChange={(e) => setCalle(e.target.value)}
+              placeholder="Av. 18 de Julio 1234"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="tipoServicio">Tipo de servicio</label>
-            <select
-              id="tipoServicio"
-              value={tipoServicio}
-              onChange={(e) => {
-                const nextType = e.target.value;
-                setTipoServicio(nextType);
-                if (nextType !== 'Servicio') {
-                  setSelectedTagId('');
-                }
-              }}
-              required
-              disabled={isLoading}
-            >
-              <option value="">Seleccionar tipo</option>
-              <option value="Salón">Salón</option>
-              <option value="Servicio">Servicio</option>
-            </select>
+            <label htmlFor="ubicacionCompuesta">Ubicación compuesta</label>
+            <input
+              id="ubicacionCompuesta"
+              type="text"
+              value={locationPreview}
+              placeholder="Se completa automáticamente"
+              disabled
+            />
           </div>
 
           <fieldset className="form-group form-group--fieldset">
@@ -279,6 +456,8 @@ const RegisterServicePage = () => {
             <span className="form-group__hint">
               Seleccioná una o varias categorías sin usar combinaciones especiales.
             </span>
+
+            {categoriesError && <div className="auth-error">{categoriesError}</div>}
 
             <div className="selection-grid" aria-label="Categorías de evento">
               {categories.map((category) => {
@@ -370,97 +549,56 @@ const RegisterServicePage = () => {
             />
           </div>
 
-          {!mostrarCapacidad && (
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setMostrarCapacidad(true)}
+          <div className="form-group">
+            <label htmlFor="capacidad">Capacidad</label>
+            <input
+              id="capacidad"
+              type="number"
+              value={capacidad}
+              onChange={(e) => setCapacidad(e.target.value)}
+              placeholder={selectedType === 'Salón' ? 'Ej: 150' : 'Opcional para servicios'}
+              required={selectedType === 'Salón'}
               disabled={isLoading}
-            >
-              + Agregar capacidad
-            </button>
-          )}
+              min="1"
+            />
+            <span className="form-group__hint">
+              {selectedType === 'Salón'
+                ? 'Para salones este dato es obligatorio.'
+                : 'Solo es obligatorio cuando registrás un salón.'}
+            </span>
+          </div>
 
-          {mostrarCapacidad && (
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <label htmlFor="capacidad">Capacidad</label>
-                <button
-                  type="button"
-                  className="btn-text"
-                  onClick={() => {
-                    setMostrarCapacidad(false);
-                    setCapacidad('');
-                  }}
-                  disabled={isLoading}
-                  style={{ padding: '0', fontSize: '0.9rem' }}
-                >
-                  Remover
-                </button>
-              </div>
-              <input
-                id="capacidad"
-                type="number"
-                value={capacidad}
-                onChange={(e) => setCapacidad(e.target.value)}
-                placeholder="Ej: 150"
-                disabled={isLoading}
-                min="0"
-              />
-            </div>
-          )}
-
-          {!mostrarDireccion && (
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setMostrarDireccion(true)}
+          <div className="form-group">
+            <label htmlFor="serviceImages">Imágenes del servicio</label>
+            <input
+              id="serviceImages"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => setServiceImages(Array.from(e.target.files ?? []))}
               disabled={isLoading}
-            >
-              + Agregar dirección específica
-            </button>
-          )}
-
-          {mostrarDireccion && (
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <label htmlFor="direccion">Dirección específica</label>
-                <button
-                  type="button"
-                  className="btn-text"
-                  onClick={() => {
-                    setMostrarDireccion(false);
-                    setDireccion('');
-                  }}
-                  disabled={isLoading}
-                  style={{ padding: '0', fontSize: '0.9rem' }}
-                >
-                  Remover
-                </button>
+            />
+            <span className="form-group__hint">
+              {isEditing
+                ? 'Si subís nuevas imágenes, reemplazarán las actuales del servicio.'
+                : 'Podés subir varias fotos para que aparezcan en el detalle del servicio.'}
+            </span>
+            {serviceImages.length > 0 && (
+              <span className="form-group__hint">{serviceImages.length} imagen{serviceImages.length === 1 ? '' : 'es'} seleccionada{serviceImages.length === 1 ? '' : 's'}.</span>
+            )}
+            {isEditing && service?.imagenes && service.imagenes.length > 0 && serviceImages.length === 0 && (
+              <div className="service-image-preview-grid" aria-label="Imágenes actuales del servicio">
+                {service.imagenes.map((imageUrl) => (
+                  <img key={imageUrl} src={imageUrl} alt="Imagen actual del servicio" className="service-image-preview-grid__item" />
+                ))}
               </div>
-              <input
-                id="direccion"
-                type="text"
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-                placeholder="Dirección detallada del servicio"
-                disabled={isLoading}
-              />
-            </div>
-          )}
+            )}
+          </div>
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? 'Registrando...' : 'Registrar servicio'}
+            {submitButtonLabel}
           </button>
         </form>
-
-        <p className="auth-footer auth-footer--secondary">
-          ¿Querés registrarte como usuario?{' '}
-          <Link to="/register/user">Ir al registro de usuario</Link>
-        </p>
-        <p className="auth-footer auth-footer--secondary">
-          <Link to="/register">Volver a elegir tipo de registro</Link>
-        </p>
       </div>
     </div>
   );

@@ -38,11 +38,11 @@ src/
 
 1. Copiar el archivo de variables de entorno:
    ```powershell
-   Copy-Item .env.example .env
+   Copy-Item .env.example .env.local
    ```
-2. Editar `.env` y configurar la URL del backend:
+2. Editar `.env.local` si tu backend local usa otro puerto:
    ```
-   NEXT_PUBLIC_API_BASE_URL=https://bookit-backend-es10.onrender.com/
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:7213
    ```
 
 En despliegue (por ejemplo Vercel), configurar la misma variable con la URL pública del backend:

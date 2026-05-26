@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { registerUser } from '../services/authService';
@@ -13,10 +13,11 @@ const RegisterUserPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [profileImage, setProfileImage] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -34,6 +35,7 @@ const RegisterUserPage = () => {
         Email: email,
         Password: password,
         Rol: 'usuario',
+        ProfileImage: profileImage,
       });
       setAuthData(data.token, data.user);
       navigate('/');
@@ -125,6 +127,20 @@ const RegisterUserPage = () => {
             />
           </div>
 
+          <div className="form-group">
+            <label htmlFor="profileImage">Foto de perfil</label>
+            <input
+              id="profileImage"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setProfileImage(e.target.files?.[0] ?? null)}
+              disabled={isLoading}
+            />
+            <span className="form-group__hint">
+              Opcional. Podés subir una imagen para tu perfil ahora o hacerlo después desde tu cuenta.
+            </span>
+          </div>
+
           <button type="submit" className="btn-primary" disabled={isLoading}>
             {isLoading ? 'Registrando...' : 'Registrarse'}
           </button>
@@ -133,13 +149,6 @@ const RegisterUserPage = () => {
         <p className="auth-footer">
           ¿Ya tenés cuenta?{' '}
           <Link to="/login">Iniciá sesión aquí</Link>
-        </p>
-        <p className="auth-footer auth-footer--secondary">
-          ¿Querés publicar un salón?{' '}
-          <Link to="/register/service">Ir al registro de salón</Link>
-        </p>
-        <p className="auth-footer auth-footer--secondary">
-          <Link to="/register">Volver a elegir tipo de registro</Link>
         </p>
       </div>
     </div>

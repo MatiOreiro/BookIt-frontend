@@ -1,11 +1,10 @@
 import {
   createContext,
   useState,
-  useEffect,
   type ReactNode,
 } from 'react';
 import type { User } from '../types/auth';
-import { logout as logoutService } from '../services/authService';
+import { getCurrentUser, logout as logoutService } from '../services/authService';
 
 interface AuthContextValue {
   user: User | null;
@@ -13,6 +12,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   setAuthData: (token: string, user: User) => void;
+  refreshUser: () => Promise<User | null>;
   logout: () => void;
 }
 
@@ -28,6 +28,7 @@ const normalizeStoredUser = (value: unknown): User | null => {
   const name = candidate.name ?? candidate.Nombre ?? candidate.nombre;
   const email = candidate.email ?? candidate.Email ?? candidate.email;
   const role = candidate.role ?? candidate.Rol ?? candidate.rol;
+  const profileImageUrl = candidate.profileImageUrl ?? candidate.ProfileImageUrl;
 
   if (
     typeof id !== 'string' ||
@@ -43,13 +44,14 @@ const normalizeStoredUser = (value: unknown): User | null => {
     name,
     email,
     role: role.toLowerCase(),
+    profileImageUrl: typeof profileImageUrl === 'string' ? profileImageUrl : null,
   };
 };
 
 const getStoredUser = (): User | null => {
   try {
-    if (typeof window === 'undefined') return null;
-    const raw = localStorage.getItem('user');
+    if (globalThis.window === undefined) return null;
+    const raw = globalThis.localStorage.getItem('user');
     return raw ? normalizeStoredUser(JSON.parse(raw)) : null;
   } catch {
     return null;
@@ -61,23 +63,35 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    setUser(getStoredUser());
+  const [user, setUser] = useState<User | null>(getStoredUser);
+  const [token, setToken] = useState<string | null>(() => {
     try {
-      setToken(typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+      return globalThis.window === undefined ? null : globalThis.localStorage.getItem('token');
     } catch {
-      setToken(null);
+      return null;
     }
-  }, []);
+  });
 
   const setAuthData = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+  };
+
+  const refreshUser = async (): Promise<User | null> => {
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const currentUser = await getCurrentUser();
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      setUser(currentUser);
+      return currentUser;
+    } catch {
+      return null;
+    }
   };
 
   const logout = () => {
@@ -95,6 +109,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isAuthenticated: Boolean(token),
         isLoading: false,
         setAuthData,
+        refreshUser,
         logout,
       }}
     >
