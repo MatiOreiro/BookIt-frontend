@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
-import { getServiceById } from '../services/serviceService';
-import type { ReservationDto, Service } from '../types/service';
+import {
+  confirmReservation,
+  confirmVisitAndMaybeCreateReservation,
+  getServiceById,
+  rejectReservation,
+  rejectVisit,
+} from '../services/serviceService';
+import type { ReservationDto, Service, VisitDto } from '../types/service';
 
 type DashboardView = 'calendario' | 'lista';
 
@@ -38,6 +44,15 @@ const getDateKey = (date: Date) =>
 const parseReservationDate = (value: string) => {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const canCompleteVisit = (visit: VisitDto) => {
+  const parsedDate = parseReservationDate(visit.fechaHoraSolicitada);
+  if (!parsedDate) {
+    return false;
+  }
+
+  return parsedDate.getTime() <= Date.now();
 };
 
 const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
@@ -80,31 +95,105 @@ const groupReservationsByDay = (reservations: ReservationDto[]) =>
     return accumulator;
   }, {});
 
-const getReservationBadge = (confirmed: boolean) =>
-  confirmed ? 'booking-badge is-confirmed' : 'booking-badge is-prebooking';
+const sortVisits = (visits: VisitDto[]) =>
+  [...visits].sort((left, right) => {
+    const leftDate = parseReservationDate(left.fechaHoraSolicitada)?.getTime() ?? 0;
+    const rightDate = parseReservationDate(right.fechaHoraSolicitada)?.getTime() ?? 0;
+    return leftDate - rightDate;
+  });
 
-const getDayClassName = (isCurrentMonth: boolean, isSelected: boolean, hasReservations: boolean) =>
+const groupVisitsByDay = (visits: VisitDto[]) =>
+  visits.reduce<Record<string, VisitDto[]>>((accumulator, visit) => {
+    const parsedDate = parseReservationDate(visit.fechaHoraSolicitada);
+    if (!parsedDate) {
+      return accumulator;
+    }
+
+    const key = getDateKey(parsedDate);
+    if (!accumulator[key]) {
+      accumulator[key] = [];
+    }
+
+    accumulator[key].push(visit);
+    return accumulator;
+  }, {});
+
+const getReservationBadge = (confirmed: boolean) => (confirmed ? 'booking-badge is-confirmed' : 'booking-badge is-prebooking');
+
+const getDayClassName = (isCurrentMonth: boolean, isSelected: boolean, hasVisits: boolean) =>
   [
     'service-owner-dashboard__day',
     isCurrentMonth ? '' : 'is-outside-month',
     isSelected ? 'is-selected' : '',
-    hasReservations ? 'has-reservations' : '',
+    hasVisits ? 'has-reservations' : '',
   ].filter(Boolean).join(' ');
 
-const buildDaySummary = (total: number, confirmed: number, pending: number) => {
-  const reservationLabel = total === 1 ? 'reserva' : 'reservas';
+const buildVisitDaySummary = (total: number, pending: number, confirmed: number) => {
+  const visitLabel = total === 1 ? 'visita' : 'visitas';
+  const pendingLabel = pending === 1 ? 'pendiente' : 'pendientes';
   const confirmedLabel = confirmed === 1 ? 'confirmada' : 'confirmadas';
-  const pendingLabel = pending === 1 ? 'pre-reserva' : 'pre-reservas';
 
-  return `${total} ${reservationLabel} en este día. ${confirmed} ${confirmedLabel} y ${pending} ${pendingLabel}.`;
+  return `${total} ${visitLabel} en este día. ${pending} ${pendingLabel} y ${confirmed} ${confirmedLabel}.`;
+};
+
+interface VisitCardProps {
+  visit: VisitDto;
+  onConfirmVisit: (visit: VisitDto) => void;
+  onRejectVisit: (visit: VisitDto) => void;
+}
+
+const VisitCard = ({ visit, onConfirmVisit, onRejectVisit }: VisitCardProps) => {
+  const visitDate = parseReservationDate(visit.fechaHoraSolicitada);
+  const isPending = visit.estado.toLowerCase() === 'pendiente';
+  const completionAllowed = canCompleteVisit(visit);
+
+  return (
+    <article className="service-owner-dashboard__reservation-card service-owner-dashboard__reservation-card--list">
+      <div className="service-owner-dashboard__reservation-card-main">
+        <div className="service-owner-dashboard__reservation-headline">
+          <h3>{visit.userNombre || 'Cliente sin nombre'}</h3>
+          <span className={getReservationBadge(!isPending)}>{visit.estado || 'Pendiente'}</span>
+        </div>
+
+        <div className="service-owner-dashboard__reservation-meta">
+          <span>🕒 {visitDate ? timeFormatter.format(visitDate) : '--:--'}</span>
+          <span>📅 {visitDate ? dateFormatter.format(visitDate) : 'Fecha no disponible'}</span>
+        </div>
+
+        <div className="service-owner-dashboard__reservation-contact">
+          <span>📝 {visit.mensaje || 'Sin mensaje'}</span>
+          <span>🏷 {visit.serviceNombre || 'Servicio'}</span>
+        </div>
+      </div>
+
+      {isPending && (
+        <div className="service-owner-dashboard__visit-actions">
+          <button
+            type="button"
+            className="service-owner-dashboard__visit-action"
+            onClick={() => onConfirmVisit(visit)}
+            disabled={!completionAllowed}
+            title={completionAllowed ? 'Confirmar visita realizada' : 'Solo disponible cuando ya pasó la fecha y hora de la visita'}
+          >
+            Marcar como cumplida
+          </button>
+          <button type="button" className="service-owner-dashboard__visit-action" onClick={() => onRejectVisit(visit)}>
+            Rechazar / eliminar
+          </button>
+        </div>
+      )}
+    </article>
+  );
 };
 
 interface ReservationCardProps {
   reservation: ReservationDto;
   variant?: 'calendar' | 'list';
+  onConfirmReservation?: (reservation: ReservationDto) => void;
+  onRejectReservation?: (reservation: ReservationDto) => void;
 }
 
-const ReservationCard = ({ reservation, variant = 'list' }: ReservationCardProps) => {
+const ReservationCard = ({ reservation, variant = 'list', onConfirmReservation, onRejectReservation }: ReservationCardProps) => {
   const reservationDate = parseReservationDate(reservation.fechaReservaCliente);
 
   return (
@@ -112,9 +201,7 @@ const ReservationCard = ({ reservation, variant = 'list' }: ReservationCardProps
       <div className="service-owner-dashboard__reservation-card-main">
         <div className="service-owner-dashboard__reservation-headline">
           <h3>{reservation.usuario?.nombre || 'Cliente sin nombre'}</h3>
-          <span className={getReservationBadge(reservation.confirmada)}>
-            {reservation.confirmada ? 'Confirmada' : 'Pre-reserva'}
-          </span>
+          <span className={getReservationBadge(reservation.confirmada)}>{reservation.confirmada ? 'Confirmada' : 'Pendiente'}</span>
         </div>
 
         <div className="service-owner-dashboard__reservation-meta">
@@ -127,6 +214,17 @@ const ReservationCard = ({ reservation, variant = 'list' }: ReservationCardProps
           <span>📞 {reservation.usuario?.telefono || 'Sin teléfono'}</span>
         </div>
       </div>
+
+      {!reservation.confirmada && onConfirmReservation && onRejectReservation && (
+        <div className="service-owner-dashboard__visit-actions">
+          <button type="button" className="service-owner-dashboard__visit-action" onClick={() => onConfirmReservation(reservation)}>
+            Confirmar reserva
+          </button>
+          <button type="button" className="service-owner-dashboard__visit-action" onClick={() => onRejectReservation(reservation)}>
+            Rechazar reserva
+          </button>
+        </div>
+      )}
     </article>
   );
 };
@@ -137,9 +235,10 @@ interface ServiceOwnerHeaderProps {
   reservationCount: number;
   onBack: () => void;
   onEdit: () => void;
+  onViewClientDetail: () => void;
 }
 
-const ServiceOwnerHeader = ({ service, userName, reservationCount, onBack, onEdit }: ServiceOwnerHeaderProps) => (
+const ServiceOwnerHeader = ({ service, userName, reservationCount, onBack, onEdit, onViewClientDetail }: ServiceOwnerHeaderProps) => (
   <div className="service-owner-dashboard__header">
     <div className="service-owner-dashboard__hero-copy">
       <button type="button" className="service-owner-dashboard__back" onClick={onBack}>
@@ -148,7 +247,7 @@ const ServiceOwnerHeader = ({ service, userName, reservationCount, onBack, onEdi
       <p className="service-owner-dashboard__eyebrow">Panel de servicio</p>
       <h1>{service.nombre}</h1>
       <p className="service-owner-dashboard__subtitle">
-        Vista resumida de este servicio con sus reservas, sus movimientos del mes y acceso rápido a los cambios.
+        Vista resumida de este servicio con sus visitas, sus reservas y acceso rápido para cerrar cada visita con o sin reserva.
       </p>
       <div className="service-owner-dashboard__meta">
         <span>👤 {userName}</span>
@@ -162,6 +261,9 @@ const ServiceOwnerHeader = ({ service, userName, reservationCount, onBack, onEdi
     <div className="service-owner-dashboard__actions">
       <button type="button" className="vendor-dashboard__create-button" onClick={onEdit}>
         Editar servicio
+      </button>
+      <button type="button" className="vendor-dashboard__create-button service-owner-dashboard__actions-secondary" onClick={onViewClientDetail}>
+        Ver detalle cliente
       </button>
     </div>
   </div>
@@ -186,33 +288,74 @@ const ServiceOwnerMetrics = ({ metrics }: ServiceOwnerMetricsProps) => (
 interface ServiceOwnerCalendarViewProps {
   viewMonth: Date;
   calendarDays: Date[];
+  visitsByDay: Record<string, VisitDto[]>;
   reservationsByDay: Record<string, ReservationDto[]>;
   activeSelectedDayKey: string | null;
   selectedDayLabel: string;
   selectedDaySummary: string;
+  selectedDayVisits: VisitDto[];
   selectedDayReservations: ReservationDto[];
   onPreviousMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
   onSelectDay: (key: string) => void;
   onClearDay: () => void;
+  onConfirmVisit: (visit: VisitDto) => void;
+  onRejectVisit: (visit: VisitDto) => void;
+  onConfirmReservation: (reservation: ReservationDto) => void;
+  onRejectReservation: (reservation: ReservationDto) => void;
 }
 
 const ServiceOwnerCalendarView = ({
   viewMonth,
   calendarDays,
+  visitsByDay,
   reservationsByDay,
   activeSelectedDayKey,
   selectedDayLabel,
   selectedDaySummary,
+  selectedDayVisits,
   selectedDayReservations,
   onPreviousMonth,
   onNextMonth,
   onToday,
   onSelectDay,
   onClearDay,
+  onConfirmVisit,
+  onRejectVisit,
+  onConfirmReservation,
+  onRejectReservation,
 }: ServiceOwnerCalendarViewProps) => {
+  const dayVisitsCount = selectedDayVisits.length;
   const dayReservationsCount = selectedDayReservations.length;
+  const hasSelectedDayItems = dayVisitsCount > 0 || dayReservationsCount > 0;
+
+  const renderSelectedDayContent = () => {
+    if (!hasSelectedDayItems) {
+      return (
+        <div className="service-owner-dashboard__empty-state">
+          <p>Elegí un día con visitas o reservas para ver el detalle.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="service-owner-dashboard__day-list">
+        {dayVisitsCount > 0 && selectedDayVisits.map((visit) => (
+          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} />
+        ))}
+        {dayReservationsCount > 0 && selectedDayReservations.map((reservation) => (
+          <ReservationCard
+            key={reservation.id}
+            reservation={reservation}
+            variant="calendar"
+            onConfirmReservation={onConfirmReservation}
+            onRejectReservation={onRejectReservation}
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="service-owner-dashboard__calendar-layout">
@@ -220,19 +363,13 @@ const ServiceOwnerCalendarView = ({
         <div className="service-owner-dashboard__calendar-header">
           <div>
             <h2>{capitalizeText(monthFormatter.format(viewMonth))}</h2>
-            <p>Seleccioná un día para ver sus reservas.</p>
+            <p>Seleccioná un día para ver sus visitas.</p>
           </div>
 
           <div className="service-owner-dashboard__calendar-controls">
-            <button type="button" onClick={onPreviousMonth}>
-              ←
-            </button>
-            <button type="button" onClick={onToday}>
-              Hoy
-            </button>
-            <button type="button" onClick={onNextMonth}>
-              →
-            </button>
+            <button type="button" onClick={onPreviousMonth}>←</button>
+            <button type="button" onClick={onToday}>Hoy</button>
+            <button type="button" onClick={onNextMonth}>→</button>
           </div>
         </div>
 
@@ -245,28 +382,30 @@ const ServiceOwnerCalendarView = ({
         <div className="service-owner-dashboard__calendar-grid">
           {calendarDays.map((date) => {
             const key = getDateKey(date);
+            const dayVisits = visitsByDay[key] ?? [];
             const dayReservations = reservationsByDay[key] ?? [];
             const isCurrentMonth = date.getMonth() === viewMonth.getMonth();
             const isSelected = key === activeSelectedDayKey;
-            const confirmedReservations = dayReservations.filter((reservation) => reservation.confirmada).length;
-            const pendingReservations = dayReservations.length - confirmedReservations;
+            const confirmedVisits = dayVisits.filter((visit) => visit.estado.toLowerCase() === 'confirmada').length;
+            const pendingVisits = dayVisits.length - confirmedVisits;
+            const hasBookings = dayVisits.length > 0 || dayReservations.length > 0;
 
             return (
               <button
                 key={key}
                 type="button"
-                className={getDayClassName(isCurrentMonth, isSelected, dayReservations.length > 0)}
+                className={getDayClassName(isCurrentMonth, isSelected, hasBookings)}
                 onClick={() => onSelectDay(key)}
               >
                 <span className="service-owner-dashboard__day-number">{date.getDate()}</span>
-                {dayReservations.length > 0 && (
+                {hasBookings && (
                   <span className="service-owner-dashboard__day-count">
-                    {dayReservations.length} reserva{dayReservations.length === 1 ? '' : 's'}
+                    {dayVisits.length} visita{dayVisits.length === 1 ? '' : 's'} / {dayReservations.length} reserva{dayReservations.length === 1 ? '' : 's'}
                   </span>
                 )}
-                {dayReservations.length > 0 && (
+                {dayVisits.length > 0 && (
                   <span className="service-owner-dashboard__day-balance">
-                    {confirmedReservations} confirmada{confirmedReservations === 1 ? '' : 's'} / {pendingReservations} pre-reserva{pendingReservations === 1 ? '' : 's'}
+                    {confirmedVisits} confirmada{confirmedVisits === 1 ? '' : 's'} / {pendingVisits} pendiente{pendingVisits === 1 ? '' : 's'}
                   </span>
                 )}
               </button>
@@ -289,41 +428,33 @@ const ServiceOwnerCalendarView = ({
           )}
         </div>
 
-        {dayReservationsCount === 0 ? (
-          <div className="service-owner-dashboard__empty-state">
-            <p>Elegí un día con reservas para ver el detalle.</p>
-          </div>
-        ) : (
-          <div className="service-owner-dashboard__day-list">
-            {selectedDayReservations.map((reservation) => (
-              <ReservationCard key={reservation.id} reservation={reservation} variant="calendar" />
-            ))}
-          </div>
-        )}
+        {renderSelectedDayContent()}
       </aside>
     </div>
   );
 };
 
 interface ServiceOwnerListViewProps {
-  reservations: ReservationDto[];
+  visits: VisitDto[];
+  onConfirmVisit: (visit: VisitDto) => void;
+  onRejectVisit: (visit: VisitDto) => void;
 }
 
-const ServiceOwnerListView = ({ reservations }: ServiceOwnerListViewProps) => (
+const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit }: ServiceOwnerListViewProps) => (
   <div className="service-owner-dashboard__list-view">
     <div className="service-owner-dashboard__list-summary">
-      <h2>Reservas ordenadas por fecha</h2>
+      <h2>Visitas ordenadas por fecha</h2>
       <p>Las más próximas aparecen arriba y las más lejanas abajo.</p>
     </div>
 
-    {reservations.length === 0 ? (
+    {visits.length === 0 ? (
       <div className="service-owner-dashboard__empty-state">
-        <p>No hay reservas para este servicio todavía.</p>
+        <p>No hay visitas para este servicio todavía.</p>
       </div>
     ) : (
       <div className="service-owner-dashboard__list">
-        {reservations.map((reservation) => (
-          <ReservationCard key={reservation.id} reservation={reservation} variant="list" />
+        {visits.map((visit) => (
+          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} />
         ))}
       </div>
     )}
@@ -346,14 +477,14 @@ const ServiceOwnerDashboardPage = () => {
 
   useEffect(() => {
     const loadService = async () => {
-      if (serviceFromState) {
-        setService(serviceFromState);
-        setLoading(false);
-        setError(null);
-        return;
-      }
-
       if (!id) {
+        if (serviceFromState) {
+          setService(serviceFromState);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+
         setError('No se encontró el servicio solicitado.');
         setLoading(false);
         return;
@@ -376,16 +507,29 @@ const ServiceOwnerDashboardPage = () => {
     loadService();
   }, [id, serviceFromState]);
 
+  const visits = useMemo(() => sortVisits(service?.visitas ?? []), [service]);
   const reservations = useMemo(() => sortReservations(service?.reservas ?? []), [service]);
-  const reservationsByDay = useMemo(() => groupReservationsByDay(reservations), [reservations]);
+  const filteredReservations = useMemo(() => {
+    const visitIds = new Set(visits.map((visit) => visit.id));
+    return reservations.filter((reservation) => !visitIds.has(reservation.id));
+  }, [reservations, visits]);
+  const visitsByDay = useMemo(() => groupVisitsByDay(visits), [visits]);
+  const reservationsByDay = useMemo(() => groupReservationsByDay(filteredReservations), [filteredReservations]);
+  const firstVisitKey = useMemo(() => {
+    const firstVisit = visits[0];
+    const parsedDate = firstVisit ? parseReservationDate(firstVisit.fechaHoraSolicitada) : null;
+    return parsedDate ? getDateKey(parsedDate) : null;
+  }, [visits]);
   const firstReservationKey = useMemo(() => {
-    const firstReservation = reservations[0];
+    const firstReservation = filteredReservations[0];
     const parsedDate = firstReservation ? parseReservationDate(firstReservation.fechaReservaCliente) : null;
     return parsedDate ? getDateKey(parsedDate) : null;
-  }, [reservations]);
-  const activeSelectedDayKey = selectionTouched ? selectedDayKey : firstReservationKey;
+  }, [filteredReservations]);
+  const activeSelectedDayKey = selectionTouched ? selectedDayKey : (firstVisitKey ?? firstReservationKey);
+  const selectedDayVisits = activeSelectedDayKey ? (visitsByDay[activeSelectedDayKey] ?? []) : [];
   const selectedDayReservations = activeSelectedDayKey ? (reservationsByDay[activeSelectedDayKey] ?? []) : [];
-  const selectedDayDate = activeSelectedDayKey ? parseReservationDate(selectedDayReservations[0]?.fechaReservaCliente ?? '') : null;
+  const selectedDayDateSource = selectedDayVisits[0]?.fechaHoraSolicitada || selectedDayReservations[0]?.fechaReservaCliente || '';
+  const selectedDayDate = activeSelectedDayKey ? parseReservationDate(selectedDayDateSource) : null;
 
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(viewMonth);
@@ -403,20 +547,21 @@ const ServiceOwnerDashboardPage = () => {
     return days;
   }, [viewMonth]);
 
-  const metrics = useMemo(() => {
-    const preReservations = reservations.filter((reservation) => !reservation.confirmada);
-    const confirmedReservations = reservations.filter((reservation) => reservation.confirmada);
+  const metrics = useMemo<MetricCard[]>(() => {
+    const pendingVisits = visits.filter((visit) => visit.estado.toLowerCase() === 'pendiente');
+    const confirmedVisits = visits.filter((visit) => visit.estado.toLowerCase() === 'confirmada');
+    const confirmedReservations = filteredReservations.filter((reservation) => reservation.confirmada);
     const baseValue = service?.precioMinimo ?? 0;
 
     return [
-      { label: 'Pre-reservas', value: String(preReservations.length), tone: 'is-warning', icon: '▣' },
-      { label: 'Reservas confirmadas', value: String(confirmedReservations.length), tone: 'is-success', icon: '▣' },
-      { label: 'Ingresos generales', value: `$ ${currencyFormatter.format(confirmedReservations.length * baseValue)}`, tone: 'is-info', icon: '$' },
-      { label: 'Ingresos potenciales', value: `$ ${currencyFormatter.format(reservations.length * baseValue)}`, tone: 'is-purple', icon: '⇢' },
+      { label: 'Visitas pendientes', value: String(pendingVisits.length), tone: 'is-warning', icon: '▣' },
+      { label: 'Visitas confirmadas', value: String(confirmedVisits.length), tone: 'is-success', icon: '▣' },
+      { label: 'Reservas confirmadas', value: String(confirmedReservations.length), tone: 'is-info', icon: '$' },
+      { label: 'Ingresos estimados', value: `$ ${currencyFormatter.format(confirmedReservations.length * baseValue)}`, tone: 'is-purple', icon: '⇢' },
     ];
-  }, [reservations, service?.precioMinimo]);
+  }, [filteredReservations, service?.precioMinimo, visits]);
 
-  const sortedReservations = useMemo(() => sortReservations(reservations), [reservations]);
+  const sortedVisits = useMemo(() => sortVisits(visits), [visits]);
 
   const handleBack = () => {
     navigate('/vendor/dashboard');
@@ -428,6 +573,102 @@ const ServiceOwnerDashboardPage = () => {
     }
 
     navigate(`/services/${service.id}/edit`);
+  };
+
+  const handleViewClientDetail = () => {
+    if (!service) {
+      return;
+    }
+
+    navigate(`/services/${service.id}`);
+  };
+
+  const refreshService = async () => {
+    const serviceId = id ?? service?.id;
+    if (!serviceId) {
+      return;
+    }
+
+    const refreshedService = await getServiceById(serviceId);
+    setService(refreshedService);
+  };
+
+  const handleConfirmVisit = async (visit: VisitDto) => {
+    if (!canCompleteVisit(visit)) {
+      setError('Solo podés marcar como cumplida una visita cuando ya pasó su fecha y hora.');
+      return;
+    }
+
+    const option = globalThis.prompt(
+      'Visita cumplida. Elegí una acción:\n1) Crear reserva\n2) Confirmar visita sin reserva\n3) Rechazar/eliminar visita\n\nEscribí 1, 2 o 3.',
+      '1',
+    );
+
+    if (!option) {
+      return;
+    }
+
+    try {
+      if (option === '1') {
+        await confirmVisitAndMaybeCreateReservation(visit.id, true);
+      } else if (option === '2') {
+        await confirmVisitAndMaybeCreateReservation(visit.id, false);
+      } else if (option === '3') {
+        await rejectVisit(visit.id);
+      } else {
+        setError('Opción inválida. Debe ser 1, 2 o 3.');
+        return;
+      }
+
+      await refreshService();
+      setError(null);
+    } catch (visitError) {
+      console.error('Error confirmando visita', visitError);
+      setError('No se pudo confirmar la visita.');
+    }
+  };
+
+  const handleRejectVisit = async (visit: VisitDto) => {
+    const confirmed = globalThis.confirm('¿Seguro que querés rechazar/eliminar esta visita?');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await rejectVisit(visit.id);
+      await refreshService();
+      setError(null);
+    } catch (visitError) {
+      console.error('Error rechazando visita', visitError);
+      setError('No se pudo rechazar la visita.');
+    }
+  };
+
+  const handleConfirmReservation = async (reservation: ReservationDto) => {
+    try {
+      await confirmReservation(reservation.id);
+      await refreshService();
+      setError(null);
+    } catch (reservationError) {
+      console.error('Error confirmando reserva', reservationError);
+      setError('No se pudo confirmar la reserva.');
+    }
+  };
+
+  const handleRejectReservation = async (reservation: ReservationDto) => {
+    const confirmed = globalThis.confirm('¿Seguro que querés rechazar esta reserva?');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await rejectReservation(reservation.id);
+      await refreshService();
+      setError(null);
+    } catch (reservationError) {
+      console.error('Error rechazando reserva', reservationError);
+      setError('No se pudo rechazar la reserva.');
+    }
   };
 
   const handleSelectDay = (key: string) => {
@@ -467,13 +708,20 @@ const ServiceOwnerDashboardPage = () => {
     );
   }
 
-  const selectedDayLabel = selectedDayDate ? capitalizeText(dayLabelFormatter.format(selectedDayDate)) : 'Seleccioná un día';
-  const dayReservationsCount = selectedDayReservations.length;
-  const confirmedCount = selectedDayReservations.filter((reservation) => reservation.confirmada).length;
-  const pendingCount = dayReservationsCount - confirmedCount;
-  const selectedDaySummary = dayReservationsCount === 0
-    ? 'No hay reservas para este día.'
-    : buildDaySummary(dayReservationsCount, confirmedCount, pendingCount);
+  let selectedDayLabel = 'Seleccioná un día';
+  if (selectedDayDate) {
+    selectedDayLabel = capitalizeText(dayLabelFormatter.format(selectedDayDate));
+  }
+  const dayVisitsCount = selectedDayVisits.length;
+  const confirmedCount = selectedDayVisits.filter((visit) => visit.estado.toLowerCase() === 'confirmada').length;
+  const pendingCount = dayVisitsCount - confirmedCount;
+  const selectedDayReservationsCount = selectedDayReservations.length;
+  const reservationWord = selectedDayReservationsCount === 1 ? 'reserva' : 'reservas';
+
+  let selectedDaySummary = 'No hay visitas ni reservas para este día.';
+  if (dayVisitsCount > 0 || selectedDayReservationsCount > 0) {
+    selectedDaySummary = `${buildVisitDaySummary(dayVisitsCount, pendingCount, confirmedCount)} ${selectedDayReservationsCount} ${reservationWord} en este día.`;
+  }
 
   return (
     <div className="service-owner-dashboard">
@@ -482,15 +730,16 @@ const ServiceOwnerDashboardPage = () => {
           <ServiceOwnerHeader
             service={service}
             userName={user?.name || 'Tu cuenta'}
-            reservationCount={service.reservas?.length ?? 0}
+            reservationCount={filteredReservations.length}
             onBack={handleBack}
             onEdit={handleEdit}
+            onViewClientDetail={handleViewClientDetail}
           />
 
           <ServiceOwnerMetrics metrics={metrics} />
 
           <section className="service-owner-dashboard__content">
-            <div className="service-owner-dashboard__switcher" role="tablist" aria-label="Vista de reservas del servicio">
+            <div className="service-owner-dashboard__switcher" role="tablist" aria-label="Vista de visitas del servicio">
               <button type="button" className={view === 'calendario' ? 'is-active' : ''} onClick={() => setView('calendario')}>
                 Calendario
               </button>
@@ -503,19 +752,50 @@ const ServiceOwnerDashboardPage = () => {
               <ServiceOwnerCalendarView
                 viewMonth={viewMonth}
                 calendarDays={calendarDays}
+                visitsByDay={visitsByDay}
                 reservationsByDay={reservationsByDay}
                 activeSelectedDayKey={activeSelectedDayKey}
                 selectedDayLabel={selectedDayLabel}
                 selectedDaySummary={selectedDaySummary}
+                selectedDayVisits={selectedDayVisits}
                 selectedDayReservations={selectedDayReservations}
                 onPreviousMonth={() => setViewMonth((current) => addMonths(current, -1))}
                 onNextMonth={() => setViewMonth((current) => addMonths(current, 1))}
                 onToday={() => setViewMonth(startOfMonth(new Date()))}
                 onSelectDay={handleSelectDay}
                 onClearDay={handleClearDay}
+                onConfirmVisit={handleConfirmVisit}
+                onRejectVisit={handleRejectVisit}
+                onConfirmReservation={handleConfirmReservation}
+                onRejectReservation={handleRejectReservation}
               />
             ) : (
-              <ServiceOwnerListView reservations={sortedReservations} />
+              <ServiceOwnerListView visits={sortedVisits} onConfirmVisit={handleConfirmVisit} onRejectVisit={handleRejectVisit} />
+            )}
+          </section>
+
+          <section className="service-owner-dashboard__reservations-section">
+            <div className="service-owner-dashboard__list-summary">
+              <h2>Reservas agendadas</h2>
+              <p>Estas son las reservas creadas para el servicio, separadas de las visitas.</p>
+            </div>
+
+            {filteredReservations.length === 0 ? (
+              <div className="service-owner-dashboard__empty-state">
+                <p>No hay reservas para este servicio todavía.</p>
+              </div>
+            ) : (
+              <div className="service-owner-dashboard__list">
+                {filteredReservations.map((reservation) => (
+                  <ReservationCard
+                    key={reservation.id}
+                    reservation={reservation}
+                    variant="list"
+                    onConfirmReservation={handleConfirmReservation}
+                    onRejectReservation={handleRejectReservation}
+                  />
+                ))}
+              </div>
             )}
           </section>
         </div>

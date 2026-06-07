@@ -44,6 +44,11 @@ src/
    ```
    NEXT_PUBLIC_API_BASE_URL=http://localhost:7213
    ```
+3. Configurar Cloudinary para habilitar las subidas desde la UI:
+   ```
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=tu_cloud_name
+   NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=tu_unsigned_upload_preset
+   ```
 
 En despliegue (por ejemplo Vercel), configurar la misma variable con la URL pública del backend:
 

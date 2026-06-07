@@ -4,8 +4,8 @@ import useAuth from '../hooks/useAuth';
 import { getServiceById, registerService, updateService } from '../services/serviceService';
 import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type DepartamentoOption } from '../services/geographyService';
 import { getEventCategories, getTags, type CatalogOption } from '../services/catalogService';
-import type { Service } from '../types/service';
 import axios from 'axios';
+import CloudinaryImagePicker from '../components/CloudinaryImagePicker';
 
 const RegisterServicePage = () => {
   const navigate = useNavigate();
@@ -22,8 +22,7 @@ const RegisterServicePage = () => {
   const [precioMaximo, setPrecioMaximo] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedTagId, setSelectedTagId] = useState('');
-  const [serviceImages, setServiceImages] = useState<File[]>([]);
-  const [service, setService] = useState<Service | null>(null);
+  const [serviceImageUrls, setServiceImageUrls] = useState<string[]>([]);
   const [categories, setCategories] = useState<CatalogOption[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [tags, setTags] = useState<CatalogOption[]>([]);
@@ -139,7 +138,6 @@ const RegisterServicePage = () => {
 
       try {
         const loadedService = await getServiceById(serviceId);
-        setService(loadedService);
 
         setTipoServicio(loadedService.tipoServicio || '');
         setNombreServicio(loadedService.nombre || '');
@@ -155,7 +153,7 @@ const RegisterServicePage = () => {
         setDepartamentoId(departamentoFromService);
         setBarrioId(barrioFromService);
         setCalle(loadedService.direccion?.calle || '');
-        setServiceImages([]);
+        setServiceImageUrls(loadedService.imagenes ?? []);
       } catch (serviceError) {
         console.error('Error cargando servicio para edición', serviceError);
         setError('No se pudo cargar el servicio para editarlo.');
@@ -230,7 +228,7 @@ const RegisterServicePage = () => {
       CategoryIds: selectedCategoryIds,
       TagIds: selectedTagId ? [selectedTagId] : undefined,
       ...(capacidad && { Capacidad: Number.parseInt(capacidad) }),
-      Images: serviceImages.length > 0 ? serviceImages : undefined,
+      Images: serviceImageUrls,
     };
   };
 
@@ -568,32 +566,16 @@ const RegisterServicePage = () => {
             </span>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="serviceImages">Imágenes del servicio</label>
-            <input
-              id="serviceImages"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setServiceImages(Array.from(e.target.files ?? []))}
-              disabled={isLoading}
-            />
-            <span className="form-group__hint">
-              {isEditing
-                ? 'Si subís nuevas imágenes, reemplazarán las actuales del servicio.'
-                : 'Podés subir varias fotos para que aparezcan en el detalle del servicio.'}
-            </span>
-            {serviceImages.length > 0 && (
-              <span className="form-group__hint">{serviceImages.length} imagen{serviceImages.length === 1 ? '' : 'es'} seleccionada{serviceImages.length === 1 ? '' : 's'}.</span>
-            )}
-            {isEditing && service?.imagenes && service.imagenes.length > 0 && serviceImages.length === 0 && (
-              <div className="service-image-preview-grid" aria-label="Imágenes actuales del servicio">
-                {service.imagenes.map((imageUrl) => (
-                  <img key={imageUrl} src={imageUrl} alt="Imagen actual del servicio" className="service-image-preview-grid__item" />
-                ))}
-              </div>
-            )}
-          </div>
+          <CloudinaryImagePicker
+            label="Imágenes del servicio"
+            hint={isEditing
+              ? 'Subí imágenes nuevas o quitá las que no quieras conservar antes de guardar.'
+              : 'Subí una o varias fotos para que aparezcan en el detalle del servicio.'}
+            imageUrls={serviceImageUrls}
+            onImageUrlsChange={setServiceImageUrls}
+            multiple
+            disabled={isLoading}
+          />
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
             {submitButtonLabel}

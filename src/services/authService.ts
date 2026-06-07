@@ -44,19 +44,6 @@ interface BackendUserResponse {
   rol?: string;
 }
 
-const appendValue = (formData: FormData, key: string, value: string | number | boolean | File | null | undefined) => {
-  if (value instanceof File) {
-    formData.append(key, value);
-    return;
-  }
-
-  if (value === null || value === undefined || value === '') {
-    return;
-  }
-
-  formData.append(key, String(value));
-};
-
 const normalizeUser = (user: BackendUser): User => ({
   id: user.Id ?? user.id ?? '',
   name: user.Nombre ?? user.nombre ?? '',
@@ -78,38 +65,36 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 export const registerUser = async (
   data: RegisterUserRequest,
 ): Promise<AuthResponse> => {
-  const formData = new FormData();
-  appendValue(formData, 'Nombre', data.Nombre);
-  appendValue(formData, 'Telefono', data.Telefono);
-  appendValue(formData, 'Email', data.Email);
-  appendValue(formData, 'Password', data.Password);
-  appendValue(formData, 'Rol', data.Rol ?? 'usuario');
-  appendValue(formData, 'ProfileImage', data.ProfileImage);
-
-  const response = await apiClient.post<BackendAuthResponse>('/auth/register', formData);
+  const response = await apiClient.post<BackendAuthResponse>('/auth/register', {
+    Nombre: data.Nombre,
+    Telefono: data.Telefono,
+    Email: data.Email,
+    Password: data.Password,
+    Rol: data.Rol ?? 'usuario',
+    ProfileImageUrl: data.ProfileImageUrl,
+  });
   return normalizeAuthResponse(response.data);
 };
 
 export const registerVendor = async (
   data: RegisterVendorRequest,
 ): Promise<AuthResponse> => {
-  const formData = new FormData();
-  appendValue(formData, 'Nombre', data.Nombre);
-  appendValue(formData, 'Telefono', data.Telefono);
-  appendValue(formData, 'Email', data.Email);
-  appendValue(formData, 'Password', data.Password);
-  appendValue(formData, 'NombreServicio', data.NombreServicio);
-  appendValue(formData, 'DescripcionServicio', data.DescripcionServicio);
-  appendValue(formData, 'Ubicacion', data.Ubicacion);
-  appendValue(formData, 'TipoServicio', data.TipoServicio);
-  appendValue(formData, 'PrecioMinimo', data.PrecioMinimo);
-  appendValue(formData, 'PrecioMaximo', data.PrecioMaximo);
-  appendValue(formData, 'ProfileImage', data.ProfileImage);
-  data.CategoryIds?.forEach((categoryId) => appendValue(formData, 'CategoryIds', categoryId));
-  data.TagIds?.forEach((tagId) => appendValue(formData, 'TagIds', tagId));
-  data.ServiceImages?.forEach((image) => appendValue(formData, 'ServiceImages', image));
-
-  const response = await apiClient.post<BackendAuthResponse>('/auth/register-vendor', formData);
+  const response = await apiClient.post<BackendAuthResponse>('/auth/register-vendor', {
+    Nombre: data.Nombre,
+    Telefono: data.Telefono,
+    Email: data.Email,
+    Password: data.Password,
+    NombreServicio: data.NombreServicio,
+    DescripcionServicio: data.DescripcionServicio,
+    Ubicacion: data.Ubicacion,
+    TipoServicio: data.TipoServicio,
+    PrecioMinimo: data.PrecioMinimo,
+    PrecioMaximo: data.PrecioMaximo,
+    CategoryIds: data.CategoryIds,
+    TagIds: data.TagIds,
+    ProfileImageUrl: data.ProfileImageUrl,
+    ServiceImageUrls: data.ServiceImageUrls,
+  });
   return normalizeAuthResponse(response.data);
 };
 
@@ -124,11 +109,10 @@ export const getCurrentUser = async (): Promise<User> => {
   return normalizeUser(response.data);
 };
 
-export const updateProfileImage = async (profileImage: File): Promise<User> => {
-  const formData = new FormData();
-  formData.append('ProfileImage', profileImage);
-
-  const response = await apiClient.put<BackendUserResponse>('/users/me/profile-image', formData);
+export const updateProfileImage = async (profileImageUrl: string): Promise<User> => {
+  const response = await apiClient.put<BackendUserResponse>('/users/me/profile-image', {
+    ProfileImageUrl: profileImageUrl,
+  });
   return normalizeUser(response.data);
 };
 

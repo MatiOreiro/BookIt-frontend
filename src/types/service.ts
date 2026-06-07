@@ -13,7 +13,19 @@ export interface RegisterServiceRequest {
   CategoryIds?: string[];
   TagIds?: string[];
   Capacidad?: number;
-  Images?: File[];
+  Images?: string[];
+}
+
+export interface CreateVisitaRequest {
+  ServiceId: string;
+  FechaHoraSolicitada: string;
+  Mensaje?: string;
+}
+
+export interface CreateReservaRequest {
+  ServiceId: string;
+  FechaReservaCliente: string;
+  Mensaje?: string;
 }
 
 export interface EventCategoryDto {
@@ -39,6 +51,18 @@ export interface ReservationDto {
   confirmada: boolean;
   fechaReservaCliente: string;
   usuario?: ReservationUserDto | null;
+}
+
+export interface VisitDto {
+  id: string;
+  serviceId: string;
+  serviceNombre?: string | null;
+  userId: string;
+  userNombre?: string | null;
+  fechaHoraSolicitada: string;
+  estado: string;
+  mensaje?: string | null;
+  fechaCreacion: string;
 }
 
 export interface DepartamentoDto {
@@ -84,6 +108,7 @@ export interface Service {
   vendor?: VendorDto;
   categorias?: EventCategoryDto[];
   reservas?: ReservationDto[];
+  visitas?: VisitDto[];
   imagenes?: string[];
   direccion?: DireccionDto | null;
 }

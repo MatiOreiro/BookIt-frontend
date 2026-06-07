@@ -1,10 +1,14 @@
+import axios from 'axios';
 import apiClient from '../api/axiosClient';
 import type {
+  CreateReservaRequest,
+  CreateVisitaRequest,
   RegisterServiceRequest,
   ReservationDto,
   ReservationUserDto,
   Service,
   ServiceFilters,
+  VisitDto,
 } from '../types/service';
 
 const pickString = (value: unknown): string =>
@@ -18,19 +22,6 @@ const pickNullableNumber = (value: unknown): number | null =>
 
 const getArray = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : [];
-
-const appendValue = (formData: FormData, key: string, value: string | number | boolean | File | null | undefined) => {
-  if (value instanceof File) {
-    formData.append(key, value);
-    return;
-  }
-
-  if (value === null || value === undefined || value === '') {
-    return;
-  }
-
-  formData.append(key, String(value));
-};
 
 const extractItems = (
   payload: unknown[] | { value?: unknown[]; data?: unknown[]; items?: unknown[] } | null,
@@ -92,6 +83,21 @@ const normalizeReservation = (raw: unknown): ReservationDto => {
   };
 };
 
+const normalizeVisit = (raw: unknown): VisitDto => {
+  const item = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: pickString(item.id ?? item.Id),
+    serviceId: pickString(item.serviceId ?? item.ServiceId),
+    serviceNombre: pickString(item.serviceNombre ?? item.ServiceNombre) || null,
+    userId: pickString(item.userId ?? item.UserId),
+    userNombre: pickString(item.userNombre ?? item.UserNombre) || null,
+    fechaHoraSolicitada: pickString(item.fechaHoraSolicitada ?? item.FechaHoraSolicitada),
+    estado: pickString(item.estado ?? item.Estado),
+    mensaje: pickString(item.mensaje ?? item.Mensaje) || null,
+    fechaCreacion: pickString(item.fechaCreacion ?? item.FechaCreacion),
+  };
+};
+
 const normalizeDepartment = (raw: unknown): { id: string; nombre: string } | undefined => {
   if (!raw || typeof raw !== 'object') {
     return undefined;
@@ -122,6 +128,29 @@ const normalizeNeighborhood = (
   };
 };
 
+const normalizeVendor = (raw: unknown): Service['vendor'] => {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+
+  const item = raw as Record<string, unknown>;
+  const id = pickString(item.id ?? item.Id);
+  const nombre = pickString(item.nombre ?? item.Nombre);
+  const telefono = pickString(item.telefono ?? item.Telefono);
+  const email = pickString(item.email ?? item.Email);
+  const profileImageUrlRaw = item.profileImageUrl ?? item.ProfileImageUrl;
+  const profileImageUrl =
+    typeof profileImageUrlRaw === 'string' && profileImageUrlRaw.length > 0
+      ? profileImageUrlRaw
+      : null;
+
+  if (!id && !nombre && !telefono && !email) {
+    return undefined;
+  }
+
+  return { id, nombre, telefono, email, profileImageUrl };
+};
+
 const normalizeAddress = (raw: unknown): Service['direccion'] => {
   if (!raw || typeof raw !== 'object') {
     return null;
@@ -142,6 +171,14 @@ const normalizeService = (raw: unknown): Service => {
   const categoriasRaw = getArray(item.categorias ?? item.Categorias);
   const imagenesRaw = getArray(item.imagenes ?? item.Imagenes);
 
+  const normalizedReservations = getArray(item.reservas ?? item.Reservas)
+    .map(normalizeReservation)
+    .filter((reservation) => Boolean(reservation.fechaReservaCliente));
+
+  const normalizedVisits = getArray(item.visitas ?? item.Visitas)
+    .map(normalizeVisit)
+    .filter((visit) => Boolean(visit.fechaHoraSolicitada));
+
   return {
     id: pickString(item.id ?? item.Id),
     vendorId: pickString(item.vendorId ?? item.VendorId),
@@ -155,8 +192,10 @@ const normalizeService = (raw: unknown): Service => {
     activo: Boolean(item.activo ?? item.Activo),
     fechaCreacion: pickString(item.fechaCreacion ?? item.FechaCreacion),
     fechaActualizacion: pickString(item.fechaActualizacion ?? item.FechaActualizacion),
+    vendor: normalizeVendor(item.vendor ?? item.Vendor),
     categorias: categoriasRaw.map(normalizeCategory),
-    reservas: getArray(item.reservas ?? item.Reservas).map(normalizeReservation),
+    reservas: normalizedReservations,
+    visitas: normalizedVisits,
     imagenes: imagenesRaw.map((image) => pickString(image)).filter(Boolean),
     direccion: normalizeAddress(direccionRaw),
   };
@@ -165,22 +204,7 @@ const normalizeService = (raw: unknown): Service => {
 export const registerService = async (
   data: RegisterServiceRequest,
 ): Promise<Service> => {
-  const formData = new FormData();
-  appendValue(formData, 'Nombre', data.Nombre);
-  appendValue(formData, 'Descripcion', data.Descripcion);
-  appendValue(formData, 'Ubicacion', data.Ubicacion);
-  appendValue(formData, 'PrecioMinimo', data.PrecioMinimo);
-  appendValue(formData, 'PrecioMaximo', data.PrecioMaximo);
-  appendValue(formData, 'TipoServicio', data.TipoServicio);
-  appendValue(formData, 'Capacidad', data.Capacidad);
-  appendValue(formData, 'Direccion.DepartamentoId', data.Direccion.DepartamentoId);
-  appendValue(formData, 'Direccion.BarrioId', data.Direccion.BarrioId);
-  appendValue(formData, 'Direccion.Calle', data.Direccion.Calle);
-  data.CategoryIds?.forEach((categoryId) => appendValue(formData, 'CategoryIds', categoryId));
-  data.TagIds?.forEach((tagId) => appendValue(formData, 'TagIds', tagId));
-  data.Images?.forEach((image) => appendValue(formData, 'Images', image));
-
-  const response = await apiClient.post<unknown>('/services', formData);
+  const response = await apiClient.post<unknown>('/services', data);
   return normalizeService(response.data);
 };
 
@@ -193,27 +217,53 @@ export const updateService = async (
   id: string,
   data: RegisterServiceRequest,
 ): Promise<Service> => {
-  const formData = new FormData();
-  appendValue(formData, 'Nombre', data.Nombre);
-  appendValue(formData, 'Descripcion', data.Descripcion);
-  appendValue(formData, 'Ubicacion', data.Ubicacion);
-  appendValue(formData, 'PrecioMinimo', data.PrecioMinimo);
-  appendValue(formData, 'PrecioMaximo', data.PrecioMaximo);
-  appendValue(formData, 'TipoServicio', data.TipoServicio);
-  appendValue(formData, 'Capacidad', data.Capacidad);
-  appendValue(formData, 'Direccion.DepartamentoId', data.Direccion.DepartamentoId);
-  appendValue(formData, 'Direccion.BarrioId', data.Direccion.BarrioId);
-  appendValue(formData, 'Direccion.Calle', data.Direccion.Calle);
-  data.CategoryIds?.forEach((categoryId) => appendValue(formData, 'CategoryIds', categoryId));
-  data.TagIds?.forEach((tagId) => appendValue(formData, 'TagIds', tagId));
-  data.Images?.forEach((image) => appendValue(formData, 'Images', image));
-
-  const response = await apiClient.put<unknown>(`/services/${id}`, formData);
+  const response = await apiClient.put<unknown>(`/services/${id}`, data);
   return normalizeService(response.data);
 };
 
 export const deleteService = async (id: string): Promise<void> => {
   await apiClient.delete(`/services/${id}`);
+};
+
+export const createVisita = async (data: CreateVisitaRequest): Promise<VisitDto> => {
+  const response = await apiClient.post<unknown>('/visitas', data);
+  return normalizeVisit(response.data);
+};
+
+export const createReserva = async (data: CreateReservaRequest): Promise<ReservationDto> => {
+  const response = await apiClient.post<unknown>('/reservas', data);
+  return normalizeReservation(response.data);
+};
+
+export const confirmVisitAndMaybeCreateReservation = async (
+  visitaId: string,
+  crearReserva: boolean,
+): Promise<unknown> => {
+  const response = await apiClient.post<unknown>(`/visitas/${visitaId}/confirmar`, { CrearReserva: crearReserva });
+  return response.data;
+};
+
+export const rejectVisit = async (visitaId: string): Promise<void> => {
+  await apiClient.delete(`/visitas/${visitaId}`);
+};
+
+export const confirmReservation = async (reservaId: string): Promise<ReservationDto> => {
+  const response = await apiClient.post<unknown>(`/reservas/${reservaId}/confirmar`);
+  return normalizeReservation(response.data);
+};
+
+export const rejectReservation = async (reservaId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/reservas/${reservaId}`);
+  } catch (error) {
+    // Compatibility fallback for stale/mixed data where a visit ID is shown in reservation UI.
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      await apiClient.delete(`/visitas/${reservaId}`);
+      return;
+    }
+
+    throw error;
+  }
 };
 
 export const getServices = async (filters?: ServiceFilters): Promise<Service[]> => {

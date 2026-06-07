@@ -9,6 +9,7 @@ import ChangePasswordPage from '../pages/ChangePasswordPage';
 import ProfilePage from '../pages/ProfilePage';
 import VendorDashboardPage from '../pages/VendorDashboardPage';
 import ServiceOwnerDashboardPage from '../pages/ServiceOwnerDashboardPage';
+import ServiceReservationPage from '../pages/ServiceReservationPage';
 import HomePage from '../pages/HomePage';
 import ServicesListPage from '../pages/ServicesListPage';
 import { getServiceById } from '../services/serviceService';
@@ -28,6 +29,7 @@ const buildMapUrl = (service?: Service) => {
 };
 
 const getServiceMainImage = (service?: Service) => service?.imagenes?.[0] ?? null;
+const getServiceGalleryImages = (service?: Service) => service?.imagenes ?? [];
 
 const ServiceDetailPage = () => {
   const { id } = useParams();
@@ -81,15 +83,6 @@ const ServiceDetailPage = () => {
     () => buildWhatsAppUrl(service?.vendor?.telefono),
     [service],
   );
-  const mailTo = useMemo(() => {
-    const email = service?.vendor?.email;
-    if (!email) {
-      return null;
-    }
-
-    const subject = encodeURIComponent(`Consulta por ${service?.nombre ?? 'el servicio'}`);
-    return `mailto:${email}?subject=${subject}`;
-  }, [service]);
   return (
     <div className="service-detail-page">
       <div className="service-detail-page__shell">
@@ -116,30 +109,35 @@ const ServiceDetailPage = () => {
           <div className="service-detail">
             <section className="service-detail__hero">
               <div className="service-detail__gallery">
-                <div className="service-detail__main-image">
-                  {getServiceMainImage(service) ? (
-                    <img src={getServiceMainImage(service) ?? undefined} alt={service.nombre} />
-                  ) : null}
-                  <div className="service-detail__main-image-overlay">
-                    <span className="service-detail__eyebrow">{service.tipoServicio || 'Salón para eventos'}</span>
-                    <h1>{service.nombre}</h1>
-                    <p>{service.ubicacion || 'Ubicación no especificada'}</p>
+                {getServiceGalleryImages(service).length === 0 ? (
+                  <div className="service-detail__gallery-empty service-detail__gallery-empty--full">
+                    <span aria-hidden="true">📷</span>
+                    <p>No tiene imágenes cargadas aún.</p>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="service-detail__main-image">
+                      <img src={getServiceMainImage(service) ?? undefined} alt={service.nombre} />
+                      <div className="service-detail__main-image-overlay">
+                        <span className="service-detail__eyebrow">{service.tipoServicio || 'Salón para eventos'}</span>
+                        <h1>{service.nombre}</h1>
+                        <p>{service.ubicacion || 'Ubicación no especificada'}</p>
+                      </div>
+                    </div>
 
-                <div className="service-detail__thumbs" aria-label="Galería del servicio">
-                  {(service.imagenes?.length ?? 0) > 1
-                    ? service.imagenes.slice(1, 6).map((imageUrl, index) => (
-                        <div key={imageUrl} className={`service-detail__thumb service-detail__thumb--${index + 1}`}>
-                          <img src={imageUrl} alt={`${service.nombre} ${index + 2}`} />
-                        </div>
-                      ))
-                    : ['Ambiente', 'Montaje', 'Iluminación', 'Recepción', 'Vista general'].map((label, index) => (
-                        <div key={label} className={`service-detail__thumb service-detail__thumb--${index + 1}`}>
-                          <span>{label}</span>
-                        </div>
-                      ))}
-                </div>
+                    {getServiceGalleryImages(service).length > 1 && (
+                      <div className="service-detail__thumbs" aria-label="Galería del servicio">
+                        {getServiceGalleryImages(service)
+                          .slice(1, 6)
+                          .map((imageUrl, index) => (
+                            <div key={imageUrl} className={`service-detail__thumb service-detail__thumb--${index + 1}`}>
+                              <img src={imageUrl} alt={`${service.nombre} ${index + 2}`} />
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <aside className="service-detail__summary">
@@ -152,6 +150,13 @@ const ServiceDetailPage = () => {
                     </p>
                   )}
                 </div>
+
+                {service.vendor?.nombre && (
+                  <div className="service-detail__vendor">
+                    <span className="service-detail__vendor-label">Atendido por</span>
+                    <strong className="service-detail__vendor-name">{service.vendor.nombre}</strong>
+                  </div>
+                )}
 
                 <div className="service-detail__contact-list">
                   {service.vendor?.telefono && (
@@ -180,15 +185,21 @@ const ServiceDetailPage = () => {
                     </button>
                   )}
 
-                  {mailTo ? (
-                    <a className="service-detail__cta service-detail__cta--primary" href={mailTo}>
-                      Solicitar cotización
-                    </a>
-                  ) : (
-                    <button type="button" className="service-detail__cta service-detail__cta--primary" disabled>
-                      Solicitar cotización
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="service-detail__cta service-detail__cta--primary"
+                    onClick={() => navigate(`/services/${service.id}/agendar?tipo=visita`, { state: { service } })}
+                  >
+                    Agendar visita
+                  </button>
+
+                  <button
+                    type="button"
+                    className="service-detail__cta service-detail__cta--secondary"
+                    onClick={() => navigate(`/services/${service.id}/agendar?tipo=reserva`, { state: { service } })}
+                  >
+                    Agendar reserva
+                  </button>
                 </div>
 
                 <p className="service-detail__response-note">Respuesta en menos de 24 horas</p>
@@ -277,6 +288,22 @@ const AppRouter = () => {
           <Route path="/lounges/:id" element={<ServiceDetailPage />} />
           <Route path="/services" element={<ServicesListPage />} />
           <Route path="/services/:id" element={<ServiceDetailPage />} />
+          <Route
+            path="/services/:id/agendar"
+            element={
+              <ProtectedRoute>
+                <ServiceReservationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services/:id/reservar"
+            element={
+              <ProtectedRoute>
+                <ServiceReservationPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/change-password"
             element={

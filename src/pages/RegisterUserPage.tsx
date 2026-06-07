@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { registerUser } from '../services/authService';
 import axios from 'axios';
+import CloudinaryImagePicker from '../components/CloudinaryImagePicker';
 
 const RegisterUserPage = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const RegisterUserPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,7 +36,7 @@ const RegisterUserPage = () => {
         Email: email,
         Password: password,
         Rol: 'usuario',
-        ProfileImage: profileImage,
+        ProfileImageUrl: profileImageUrl.trim() || undefined,
       });
       setAuthData(data.token, data.user);
       navigate('/');
@@ -127,19 +128,13 @@ const RegisterUserPage = () => {
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="profileImage">Foto de perfil</label>
-            <input
-              id="profileImage"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setProfileImage(e.target.files?.[0] ?? null)}
-              disabled={isLoading}
-            />
-            <span className="form-group__hint">
-              Opcional. Podés subir una imagen para tu perfil ahora o hacerlo después desde tu cuenta.
-            </span>
-          </div>
+          <CloudinaryImagePicker
+            label="Foto de perfil"
+            hint="Opcional. Subila desde tu dispositivo y guardamos automáticamente la URL de Cloudinary."
+            imageUrls={profileImageUrl ? [profileImageUrl] : []}
+            onImageUrlsChange={(urls) => setProfileImageUrl(urls[0] ?? '')}
+            disabled={isLoading}
+          />
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
             {isLoading ? 'Registrando...' : 'Registrarse'}

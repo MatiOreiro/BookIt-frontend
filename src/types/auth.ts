@@ -9,7 +9,7 @@ export interface RegisterUserRequest {
   Email: string;
   Password: string;
   Rol?: string;
-  ProfileImage?: File | null;
+  ProfileImageUrl?: string | null;
 }
 
 export interface RegisterVendorRequest {
@@ -25,8 +25,8 @@ export interface RegisterVendorRequest {
   PrecioMaximo: number;
   CategoryIds?: string[];
   TagIds?: string[];
-  ProfileImage?: File | null;
-  ServiceImages?: File[];
+  ProfileImageUrl?: string | null;
+  ServiceImageUrls?: string[];
 }
 
 export interface ChangePasswordRequest {

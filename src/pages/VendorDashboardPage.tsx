@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { deleteService, getServices } from '../services/serviceService';
-import type { Service } from '../types/service';
+import type { ReservationDto, Service, VisitDto } from '../types/service';
 
 const currencyFormatter = new Intl.NumberFormat('es-UY');
 
@@ -42,12 +42,30 @@ const VendorDashboardPage = () => {
     loadServices();
   }, [user?.id]);
 
-  const metrics = [
-    { label: 'Pre-reservas', value: '0', tone: 'is-warning', icon: '▣' },
-    { label: 'Reservas confirmadas', value: '0', tone: 'is-success', icon: '▣' },
-    { label: 'Ingresos generales', value: '$ 0', tone: 'is-info', icon: '$' },
-    { label: 'Ingresos potenciales', value: '$ 0', tone: 'is-purple', icon: '⇢' },
-  ];
+  const metrics = useMemo(() => {
+    const ownerVisits: VisitDto[] = services.flatMap((service) => service.visitas ?? []);
+    const ownerReservations: ReservationDto[] = services.flatMap((service) => service.reservas ?? []);
+    const pendingVisits = ownerVisits.filter((visit) => visit.estado.toLowerCase() === 'pendiente');
+    const confirmedReservations = ownerReservations.filter((reservation) => reservation.confirmada);
+
+    const income = confirmedReservations.reduce((total, reservation) => {
+      const reservationService = services.find((service) => service.id === reservation.serviceId);
+      return total + (reservationService?.precioMinimo ?? 0);
+    }, 0);
+
+    const potentialIncome = ownerReservations.reduce((total, reservation) => {
+      const reservationService = services.find((service) => service.id === reservation.serviceId);
+      return total + (reservationService?.precioMinimo ?? 0);
+    }, 0);
+
+    return [
+      { label: 'Visitas pendientes', value: String(pendingVisits.length), tone: 'is-warning', icon: '▣' },
+      { label: 'Pre-reservas', value: String(ownerReservations.length), tone: 'is-warning', icon: '▣' },
+      { label: 'Reservas confirmadas', value: String(confirmedReservations.length), tone: 'is-success', icon: '▣' },
+      { label: 'Ingresos generales', value: `$ ${currencyFormatter.format(income)}`, tone: 'is-info', icon: '$' },
+      { label: 'Ingresos potenciales', value: `$ ${currencyFormatter.format(potentialIncome)}`, tone: 'is-purple', icon: '⇢' },
+    ];
+  }, [services]);
 
   const servicePluralSuffix = services.length === 1 ? '' : 's';
   const serviceCountLabel = loading
@@ -160,14 +178,14 @@ const VendorDashboardPage = () => {
                         className="service-admin-card__action"
                         onClick={() => navigate(`/vendor/services/${service.id}`, { state: { service } })}
                       >
-                        Ver detalles
+                        Ver detalle dueño
                       </button>
                       <button
                         type="button"
                         className="service-admin-card__action"
                         onClick={() => navigate(`/services/${service.id}/edit`)}
                       >
-                        Modificar
+                        Editar
                       </button>
                       <button
                         type="button"
