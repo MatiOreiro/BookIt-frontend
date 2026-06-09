@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getServices } from '../services/serviceService';
+import { getEventCategories, type CatalogOption } from '../services/catalogService';
+import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type DepartamentoOption } from '../services/geographyService';
 import type { Service } from '../types/service';
 
 const normalizeType = (value: string) =>
@@ -17,6 +19,42 @@ const matchesMode = (serviceType: string, isServicesMode: boolean) => {
     : normalized.includes('salon');
 };
 
+const matchesCategoryFilter = (service: Service, categoryId?: string) => {
+  if (!categoryId) return true;
+  return service.categorias?.some((category) => category.id === categoryId) ?? false;
+};
+
+const matchesDepartmentFilter = (service: Service, departamentoId?: string) => {
+  if (!departamentoId) return true;
+  return service.direccion?.departamento?.id === departamentoId;
+};
+
+const matchesBarrioFilter = (service: Service, barrioId?: string) => {
+  if (!barrioId) return true;
+  return service.direccion?.barrio?.id === barrioId;
+};
+
+const matchesGuestsFilter = (service: Service, guests?: string) => {
+  if (!guests) return true;
+  const capacity = service.capacidad;
+  if (capacity == null) return false;
+
+  switch (guests) {
+    case 'Hasta 50':
+      return capacity <= 50;
+    case '50-100':
+      return capacity >= 50 && capacity <= 100;
+    case '100-200':
+      return capacity >= 100 && capacity <= 200;
+    case '200-300':
+      return capacity >= 200 && capacity <= 300;
+    case 'Más de 300':
+      return capacity > 300;
+    default:
+      return true;
+  }
+};
+
 const ServicesListPage = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -24,51 +62,99 @@ const ServicesListPage = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CatalogOption[]>([]);
+  const [departamentos, setDepartamentos] = useState<DepartamentoOption[]>([]);
+  const [barrios, setBarrios] = useState<BarrioOption[]>([]);
 
   const isServicesMode = location.pathname.startsWith('/services');
+  const initialDepartment = searchParams.get('department') || searchParams.get('zone') || '';
+  const initialBarrio = searchParams.get('barrio') || '';
+
   // Filter state (temp - pending application)
+  const [eventTypeFilter, setEventTypeFilter] = useState(searchParams.get('category') || '');
   const [minPriceFilter, setMinPriceFilter] = useState('');
   const [maxPriceFilter, setMaxPriceFilter] = useState('');
-  const [zonaFilter, setZonaFilter] = useState(searchParams.get('zone') || '');
+  const [departamentoFilter, setDepartamentoFilter] = useState(initialDepartment);
+  const [barrioFilter, setBarrioFilter] = useState(initialBarrio);
   const [invitadosFilter, setInvitadosFilter] = useState(searchParams.get('guests') || '');
 
   // Applied filters (what's actually being used for search)
   const [appliedFilters, setAppliedFilters] = useState({
+    categoryId: searchParams.get('category') || '',
     minPrice: undefined,
     maxPrice: undefined,
-    location: searchParams.get('zone') || '',
+    departamentoId: initialDepartment,
+    barrioId: initialBarrio,
     guests: searchParams.get('guests') || '',
   });
 
-  // Extract unique locations for suggestions
-  const uniqueLocations = useMemo(
-    () => Array.from(new Set(services.map((s) => s.ubicacion).filter(Boolean))),
-    [services],
-  );
+  useEffect(() => {
+    const loadCategories = async () => {
+      const data = await getEventCategories();
+      setCategories(data);
+    };
 
-  // Fetch services when applied filters change
+    const loadDepartamentos = async () => {
+      const data = await getDepartamentos();
+      setDepartamentos(data);
+    };
+
+    loadCategories();
+    loadDepartamentos();
+  }, []);
+
+  useEffect(() => {
+    const loadBarrios = async () => {
+      if (!departamentoFilter) {
+        setBarrios([]);
+        setBarrioFilter('');
+        return;
+      }
+
+      const data = await getBarriosByDepartamento(departamentoFilter);
+      setBarrios(data);
+    };
+
+    loadBarrios();
+  }, [departamentoFilter]);
+
+  const getServiceLocation = (service: Service) => {
+    const departmentName = service.direccion?.departamento?.nombre;
+    const barrioName = service.direccion?.barrio?.nombre;
+
+    if (departmentName || barrioName) {
+      return [departmentName, barrioName].filter(Boolean).join(' / ');
+    }
+
+    return service.ubicacion || 'Ubicación no especificada';
+  };
+
+  const fetchFilters = useMemo(() => ({
+    minPrice: appliedFilters.minPrice,
+    maxPrice: appliedFilters.maxPrice,
+    searchTerm: searchParams.get('q') || undefined,
+  }), [appliedFilters.minPrice, appliedFilters.maxPrice, searchParams]);
+
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
       setError(null);
       try {
-        const filters = {
-          minPrice: appliedFilters.minPrice,
-          maxPrice: appliedFilters.maxPrice,
-          location: appliedFilters.location || undefined,
-          searchTerm: searchParams.get('q') || undefined,
-        };
+        const filters = fetchFilters;
 
         const data = await getServices(filters);
         const typedData = data.filter((service) =>
           matchesMode(service.tipoServicio, isServicesMode),
         );
-        
-        // Filter by guests on client-side if guests filter is selected
-        // In a real scenario, this would be server-side filtered
-        // For now, we'll keep all results as capacity info isn't available
-        // You might want to add capacity to the Service type later
-        setServices(typedData);
+
+        const filteredData = typedData.filter((service) =>
+          matchesCategoryFilter(service, appliedFilters.categoryId)
+          && matchesDepartmentFilter(service, appliedFilters.departamentoId)
+          && matchesBarrioFilter(service, appliedFilters.barrioId)
+          && matchesGuestsFilter(service, appliedFilters.guests),
+        );
+
+        setServices(filteredData);
       } catch {
         setError('Error al cargar los salones');
       } finally {
@@ -77,34 +163,40 @@ const ServicesListPage = () => {
     };
 
     fetchServices();
-  }, [appliedFilters, isServicesMode, searchParams]);
+  }, [fetchFilters, appliedFilters.categoryId, appliedFilters.departamentoId, appliedFilters.barrioId, appliedFilters.guests, isServicesMode]);
 
   const handleApplyFilters = () => {
     const minPrice = minPriceFilter ? Number.parseFloat(minPriceFilter) : undefined;
     const maxPrice = maxPriceFilter ? Number.parseFloat(maxPriceFilter) : undefined;
 
     setAppliedFilters({
+      categoryId: eventTypeFilter,
       minPrice,
       maxPrice,
-      location: zonaFilter,
+      departamentoId: departamentoFilter,
+      barrioId: barrioFilter,
       guests: invitadosFilter,
     });
   };
 
   const handleClearFilters = () => {
+    setEventTypeFilter('');
     setMinPriceFilter('');
     setMaxPriceFilter('');
-    setZonaFilter('');
+    setDepartamentoFilter('');
+    setBarrioFilter('');
     setInvitadosFilter('');
     setAppliedFilters({
+      categoryId: '',
       minPrice: undefined,
       maxPrice: undefined,
-      location: '',
+      departamentoId: '',
+      barrioId: '',
       guests: '',
     });
   };
 
-  const activeFilters = [minPriceFilter, maxPriceFilter, zonaFilter, invitadosFilter].filter(
+  const activeFilters = [eventTypeFilter, minPriceFilter, maxPriceFilter, departamentoFilter, barrioFilter, invitadosFilter].filter(
     Boolean,
   ).length;
   const searchSuffix = searchParams.toString() ? `?${searchParams.toString()}` : '';
@@ -134,28 +226,60 @@ const ServicesListPage = () => {
           </div>
 
           <div className="filter-group">
-            <label htmlFor="zona" className="filter-label">
-              Zona
+            <label htmlFor="tipo-evento" className="filter-label">
+              Tipo de evento
             </label>
             <select
-              id="zona"
-              value={zonaFilter}
-              onChange={(e) => setZonaFilter(e.target.value)}
+              id="tipo-evento"
+              value={eventTypeFilter}
+              onChange={(e) => setEventTypeFilter(e.target.value)}
               className="filter-select"
             >
-              <option value="">Todas</option>
-              <option value="Pocitos">Pocitos</option>
-              <option value="Carrasco">Carrasco</option>
-              <option value="Centro">Centro</option>
-              <option value="Parque Rodó">Parque Rodó</option>
-              <option value="Ciudad Vieja">Ciudad Vieja</option>
-              {uniqueLocations
-                .filter((loc) => !['Pocitos', 'Carrasco', 'Centro', 'Parque Rodó', 'Ciudad Vieja'].includes(loc))
-                .map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
+              <option value="">Todos</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="departamento" className="filter-label">
+              Departamento
+            </label>
+            <select
+              id="departamento"
+              value={departamentoFilter}
+              onChange={(e) => setDepartamentoFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Todos</option>
+              {departamentos.map((departamento) => (
+                <option key={departamento.id} value={departamento.id}>
+                  {departamento.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="barrio" className="filter-label">
+              Barrio
+            </label>
+            <select
+              id="barrio"
+              value={barrioFilter}
+              onChange={(e) => setBarrioFilter(e.target.value)}
+              className="filter-select"
+              disabled={!departamentoFilter}
+            >
+              <option value="">Todos</option>
+              {barrios.map((barrio) => (
+                <option key={barrio.id} value={barrio.id}>
+                  {barrio.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -253,8 +377,10 @@ const ServicesListPage = () => {
                     <h3 className="service-card__name">{service.nombre || 'Salón sin nombre'}</h3>
 
                     <div className="service-card__meta">
-                      <span className="service-card__location">📍 {service.ubicacion || 'Ubicación no especificada'}</span>
-                      <span className="service-card__capacity">👥 50-200 personas</span>
+                      <span className="service-card__location">📍 {getServiceLocation(service)}</span>
+                      <span className="service-card__capacity">
+                        👥 {typeof service.capacidad === 'number' ? `${service.capacidad} personas` : 'Capacidad no disponible'}
+                      </span>
                     </div>
 
                     {service.categorias && service.categorias.length > 0 && (

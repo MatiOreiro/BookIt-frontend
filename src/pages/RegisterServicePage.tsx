@@ -28,6 +28,7 @@ const RegisterServicePage = () => {
   const [tags, setTags] = useState<CatalogOption[]>([]);
   const [tagsError, setTagsError] = useState<string | null>(null);
   const [isTagsLoading, setIsTagsLoading] = useState(false);
+  const [hasAttemptedTagsLoad, setHasAttemptedTagsLoad] = useState(false);
   const [departamentos, setDepartamentos] = useState<DepartamentoOption[]>([]);
   const [barrios, setBarrios] = useState<BarrioOption[]>([]);
   const [isDepartamentosLoading, setIsDepartamentosLoading] = useState(false);
@@ -106,10 +107,11 @@ const RegisterServicePage = () => {
 
   useEffect(() => {
     const loadTags = async () => {
-      if (selectedType !== 'Servicio' || tags.length > 0 || isTagsLoading) {
+      if (selectedType !== 'Servicio' || tags.length > 0 || isTagsLoading || hasAttemptedTagsLoad) {
         return;
       }
 
+      setHasAttemptedTagsLoad(true);
       setIsTagsLoading(true);
       setTagsError(null);
 
@@ -125,7 +127,7 @@ const RegisterServicePage = () => {
     };
 
     loadTags();
-  }, [isTagsLoading, selectedType, tags.length]);
+  }, [selectedType, tags.length, isTagsLoading, hasAttemptedTagsLoad]);
 
   useEffect(() => {
     const loadServiceForEdit = async () => {

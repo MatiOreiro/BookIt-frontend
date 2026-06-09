@@ -1,21 +1,58 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../utils/navigation';
+import { getEventCategories, type CatalogOption } from '../services/catalogService';
+import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type DepartamentoOption } from '../services/geographyService';
 
 const HomePage = () => {
   const [eventDate, setEventDate] = useState('');
-  const [eventType, setEventType] = useState('');
-  const [zone, setZone] = useState('');
+  const [eventCategoryId, setEventCategoryId] = useState('');
+  const [departamentoId, setDepartamentoId] = useState('');
+  const [barrioId, setBarrioId] = useState('');
   const [guests, setGuests] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [categories, setCategories] = useState<CatalogOption[]>([]);
+  const [departamentos, setDepartamentos] = useState<DepartamentoOption[]>([]);
+  const [barrios, setBarrios] = useState<BarrioOption[]>([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      const data = await getEventCategories();
+      setCategories(data);
+    };
+
+    const loadDepartamentos = async () => {
+      const data = await getDepartamentos();
+      setDepartamentos(data);
+    };
+
+    loadCategories();
+    loadDepartamentos();
+  }, []);
+
+  useEffect(() => {
+    const loadBarrios = async () => {
+      if (!departamentoId) {
+        setBarrios([]);
+        setBarrioId('');
+        return;
+      }
+
+      const data = await getBarriosByDepartamento(departamentoId);
+      setBarrios(data);
+    };
+
+    loadBarrios();
+  }, [departamentoId]);
 
   const filters = useMemo(
     () => [
       { label: 'Fecha del evento', value: eventDate || 'Elegí una fecha' },
-      { label: 'Tipo de evento', value: eventType },
-      { label: 'Zona', value: zone },
+      { label: 'Tipo de evento', value: categories.find((category) => category.id === eventCategoryId)?.name || '' },
+      { label: 'Departamento', value: departamentos.find((departamento) => departamento.id === departamentoId)?.nombre || '' },
+      { label: 'Barrio', value: barrios.find((barrio) => barrio.id === barrioId)?.nombre || '' },
       { label: 'Invitados', value: guests },
     ],
-    [eventDate, eventType, zone, guests],
+    [categories, eventCategoryId, departamentos, departamentoId, barrios, barrioId, guests],
   );
 
   const handleSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
@@ -24,8 +61,9 @@ const HomePage = () => {
 
     const params = new URLSearchParams();
     if (eventDate) params.set('date', eventDate);
-    if (eventType) params.set('category', eventType);
-    if (zone) params.set('zone', zone);
+    if (eventCategoryId) params.set('category', eventCategoryId);
+    if (departamentoId) params.set('department', departamentoId);
+    if (barrioId) params.set('barrio', barrioId);
     if (guests) params.set('guests', guests);
 
     const query = params.toString();
@@ -58,25 +96,37 @@ const HomePage = () => {
 
               <label className="search-field">
                 <span>Tipo de evento</span>
-                <select value={eventType} onChange={(e) => setEventType(e.target.value)}>
+                <select value={eventCategoryId} onChange={(e) => setEventCategoryId(e.target.value)}>
                   <option value="">Seleccionar tipo</option>
-                  <option value="Bodas">Bodas</option>
-                  <option value="Cumpleaños">Cumpleaños</option>
-                  <option value="Corporativos">Corporativos</option>
-                  <option value="Quince años">Quince años</option>
-                  <option value="Eventos sociales">Eventos sociales</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </label>
 
               <label className="search-field">
-                <span>Zona</span>
-                <select value={zone} onChange={(e) => setZone(e.target.value)}>
-                  <option value="">Seleccionar zona</option>
-                  <option value="Pocitos">Pocitos</option>
-                  <option value="Carrasco">Carrasco</option>
-                  <option value="Centro">Centro</option>
-                  <option value="Parque Rodó">Parque Rodó</option>
-                  <option value="Ciudad Vieja">Ciudad Vieja</option>
+                <span>Departamento</span>
+                <select value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)}>
+                  <option value="">Seleccionar departamento</option>
+                  {departamentos.map((departamento) => (
+                    <option key={departamento.id} value={departamento.id}>
+                      {departamento.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="search-field">
+                <span>Barrio</span>
+                <select value={barrioId} onChange={(e) => setBarrioId(e.target.value)} disabled={!departamentoId}>
+                  <option value="">Seleccionar barrio</option>
+                  {barrios.map((barrio) => (
+                    <option key={barrio.id} value={barrio.id}>
+                      {barrio.nombre}
+                    </option>
+                  ))}
                 </select>
               </label>
 
