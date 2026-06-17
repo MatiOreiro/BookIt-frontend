@@ -57,6 +57,12 @@ const canCompleteVisit = (visit: VisitDto) => {
   return parsedDate.getTime() <= Date.now();
 };
 
+const isReservacionPagada = (r: ReservationDto) => {
+  const monto = r.montoAcordado ?? 0;
+  const pagado = (r.pagos ?? []).reduce((sum, p) => sum + p.importe, 0);
+  return monto > 0 && pagado >= monto;
+};
+
 const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
 const addMonths = (date: Date, amount: number) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
 
@@ -1097,17 +1103,21 @@ const ServiceOwnerDashboardPage = () => {
 
   const metrics = useMemo<MetricCard[]>(() => {
     const pendingVisits = visits.filter((visit) => visit.estado.toLowerCase() === 'pendiente');
-    const confirmedVisits = visits.filter((visit) => visit.estado.toLowerCase() === 'confirmada');
-    const confirmedReservations = filteredReservations.filter((reservation) => reservation.confirmada);
-    const baseValue = service?.precioMinimo ?? 0;
+    const confirmedUnpaidReservations = filteredReservations.filter(
+      (r) => r.confirmada && !isReservacionPagada(r),
+    );
+    const paidReservations = filteredReservations.filter(isReservacionPagada);
+    const totalPagos = filteredReservations
+      .flatMap((r) => r.pagos ?? [])
+      .reduce((sum, p) => sum + p.importe, 0);
 
     return [
       { label: 'Visitas pendientes', value: String(pendingVisits.length), tone: 'is-warning', icon: '▣' },
-      { label: 'Visitas confirmadas', value: String(confirmedVisits.length), tone: 'is-success', icon: '▣' },
-      { label: 'Reservas confirmadas', value: String(confirmedReservations.length), tone: 'is-info', icon: '$' },
-      { label: 'Ingresos estimados', value: `$ ${currencyFormatter.format(confirmedReservations.length * baseValue)}`, tone: 'is-purple', icon: '⇢' },
+      { label: 'Reservas confirmadas', value: String(confirmedUnpaidReservations.length), tone: 'is-info', icon: '$' },
+      { label: 'Reservas pagadas', value: String(paidReservations.length), tone: 'is-success', icon: '✓' },
+      { label: 'Pagos registrados', value: `$ ${currencyFormatter.format(totalPagos)}`, tone: 'is-purple', icon: '⇢' },
     ];
-  }, [filteredReservations, service?.precioMinimo, visits]);
+  }, [filteredReservations, visits]);
 
   const sortedVisits = useMemo(() => sortVisits(visits), [visits]);
 
