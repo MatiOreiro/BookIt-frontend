@@ -646,7 +646,7 @@ const ServiceOwnerDashboardPage = () => {
 
   const handleConfirmReservation = async (reservation: ReservationDto) => {
     try {
-      await confirmReservation(reservation.id);
+      await confirmReservation(reservation.id, { horasReservadas: 0, montoAcordado: 0 });
       await refreshService();
       setError(null);
     } catch (reservationError) {

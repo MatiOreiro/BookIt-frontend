@@ -44,6 +44,34 @@ export interface ReservationUserDto {
   fechaActualizacion: string;
 }
 
+export interface PagoDto {
+  id: string;
+  reservaId: string;
+  tipoPago: 'Seña' | 'Parcial' | 'Total';
+  importe: number;
+  fechaPago: string;
+  fechaCreacion: string;
+  fechaActualizacion: string;
+}
+
+export interface CreatePagoRequest {
+  reservaId: string;
+  tipoPago: string;
+  importe: number;
+  fechaPago: string;
+}
+
+export interface UpdatePagoRequest {
+  tipoPago: string;
+  importe: number;
+  fechaPago: string;
+}
+
+export interface ConfirmarReservaRequest {
+  horasReservadas: number;
+  montoAcordado: number;
+}
+
 export interface ReservationDto {
   id: string;
   serviceId: string;
@@ -51,6 +79,9 @@ export interface ReservationDto {
   confirmada: boolean;
   fechaReservaCliente: string;
   usuario?: ReservationUserDto | null;
+  montoAcordado?: number | null;
+  horasReservadas?: number | null;
+  pagos?: PagoDto[];
 }
 
 export interface VisitDto {
@@ -59,6 +90,7 @@ export interface VisitDto {
   serviceNombre?: string | null;
   userId: string;
   userNombre?: string | null;
+  userEmail?: string | null;
   fechaHoraSolicitada: string;
   estado: string;
   mensaje?: string | null;

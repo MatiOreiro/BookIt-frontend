@@ -1,8 +1,10 @@
 import axios from 'axios';
 import apiClient from '../api/axiosClient';
 import type {
+  ConfirmarReservaRequest,
   CreateReservaRequest,
   CreateVisitaRequest,
+  PagoDto,
   RegisterServiceRequest,
   ReservationDto,
   ReservationUserDto,
@@ -53,6 +55,19 @@ const normalizeCategory = (raw: unknown): { id: string; nombre: string } => {
   };
 };
 
+const normalizePago = (raw: unknown): PagoDto => {
+  const item = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: pickString(item.id ?? item.Id),
+    reservaId: pickString(item.reservaId ?? item.ReservaId),
+    tipoPago: pickString(item.tipoPago ?? item.TipoPago) as PagoDto['tipoPago'],
+    importe: pickNumber(item.importe ?? item.Importe),
+    fechaPago: pickString(item.fechaPago ?? item.FechaPago),
+    fechaCreacion: pickString(item.fechaCreacion ?? item.FechaCreacion),
+    fechaActualizacion: pickString(item.fechaActualizacion ?? item.FechaActualizacion),
+  };
+};
+
 const normalizeReservationUser = (raw: unknown): ReservationUserDto | null => {
   if (!raw || typeof raw !== 'object') {
     return null;
@@ -80,6 +95,9 @@ const normalizeReservation = (raw: unknown): ReservationDto => {
     confirmada: Boolean(item.confirmada ?? item.Confirmada),
     fechaReservaCliente: pickString(item.fechaReservaCliente ?? item.FechaReservaCliente),
     usuario: normalizeReservationUser(item.usuario ?? item.Usuario),
+    montoAcordado: pickNullableNumber(item.montoAcordado ?? item.MontoAcordado),
+    horasReservadas: pickNullableNumber(item.horasReservadas ?? item.HorasReservadas),
+    pagos: getArray(item.pagos ?? item.Pagos).map(normalizePago),
   };
 };
 
@@ -91,6 +109,7 @@ const normalizeVisit = (raw: unknown): VisitDto => {
     serviceNombre: pickString(item.serviceNombre ?? item.ServiceNombre) || null,
     userId: pickString(item.userId ?? item.UserId),
     userNombre: pickString(item.userNombre ?? item.UserNombre) || null,
+    userEmail: pickString(item.userEmail ?? item.UserEmail) || null,
     fechaHoraSolicitada: pickString(item.fechaHoraSolicitada ?? item.FechaHoraSolicitada),
     estado: pickString(item.estado ?? item.Estado),
     mensaje: pickString(item.mensaje ?? item.Mensaje) || null,
@@ -247,8 +266,19 @@ export const rejectVisit = async (visitaId: string): Promise<void> => {
   await apiClient.delete(`/visitas/${visitaId}`);
 };
 
-export const confirmReservation = async (reservaId: string): Promise<ReservationDto> => {
-  const response = await apiClient.post<unknown>(`/reservas/${reservaId}/confirmar`);
+export const confirmReservation = async (reservaId: string, data: ConfirmarReservaRequest): Promise<ReservationDto> => {
+  const response = await apiClient.post<unknown>(`/reservas/${reservaId}/confirmar`, {
+    HorasReservadas: data.horasReservadas,
+    MontoAcordado: data.montoAcordado,
+  });
+  return normalizeReservation(response.data);
+};
+
+export const updateReservaFinanciero = async (reservaId: string, data: ConfirmarReservaRequest): Promise<ReservationDto> => {
+  const response = await apiClient.put<unknown>(`/reservas/${reservaId}/financiero`, {
+    HorasReservadas: data.horasReservadas,
+    MontoAcordado: data.montoAcordado,
+  });
   return normalizeReservation(response.data);
 };
 
