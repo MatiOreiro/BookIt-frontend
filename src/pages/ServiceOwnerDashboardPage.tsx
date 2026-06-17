@@ -1,6 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import useAuth from '../hooks/useAuth';
 import {
   confirmReservation,
   confirmVisitAndMaybeCreateReservation,
@@ -1086,7 +1085,6 @@ const ServiceOwnerDashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
-  const { user } = useAuth();
   const serviceFromState = (location.state as { service?: Service } | null | undefined)?.service;
   const [service, setService] = useState<Service | null>(serviceFromState ?? null);
   const [loading, setLoading] = useState(!serviceFromState);
@@ -1175,9 +1173,9 @@ const ServiceOwnerDashboardPage = () => {
   const metrics = useMemo<MetricCard[]>(() => {
     const pendingVisits = visits.filter((visit) => visit.estado.toLowerCase() === 'pendiente');
     const confirmedUnpaidReservations = filteredReservations.filter(
-      (r) => r.confirmada && !isReservacionPagada(r),
+      (r) => r.confirmada && (r.montoAcordado ?? 0) > 0 && !isReservacionPagada(r),
     );
-    const paidReservations = filteredReservations.filter(isReservacionPagada);
+    const paidReservations = filteredReservations.filter((r) => r.confirmada && isReservacionPagada(r));
     const totalPagos = filteredReservations
       .flatMap((r) => r.pagos ?? [])
       .reduce((sum, p) => sum + p.importe, 0);
@@ -1189,8 +1187,6 @@ const ServiceOwnerDashboardPage = () => {
       { label: 'Pagos registrados', value: `$ ${currencyFormatter.format(totalPagos)}`, tone: 'is-purple', icon: '⇢' },
     ];
   }, [filteredReservations, visits]);
-
-  const sortedVisits = useMemo(() => sortVisits(visits), [visits]);
 
   const detailReservationId = detailReservation?.id;
   useEffect(() => {
@@ -1424,7 +1420,7 @@ const ServiceOwnerDashboardPage = () => {
               <ServiceOwnerListView
                 activeTab={listTab}
                 onTabChange={setListTab}
-                visits={sortedVisits}
+                visits={visits}
                 reservations={filteredReservations}
                 onConfirmVisit={handleConfirmVisit}
                 onRejectVisit={handleRejectVisit}
