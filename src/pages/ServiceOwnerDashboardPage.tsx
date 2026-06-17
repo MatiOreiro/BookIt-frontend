@@ -142,9 +142,10 @@ interface VisitCardProps {
   visit: VisitDto;
   onConfirmVisit: (visit: VisitDto) => void;
   onRejectVisit: (visit: VisitDto) => void;
+  onViewDetail?: (visit: VisitDto) => void;
 }
 
-const VisitCard = ({ visit, onConfirmVisit, onRejectVisit }: VisitCardProps) => {
+const VisitCard = ({ visit, onConfirmVisit, onRejectVisit, onViewDetail }: VisitCardProps) => {
   const visitDate = parseReservationDate(visit.fechaHoraSolicitada);
   const isPending = visit.estado.toLowerCase() === 'pendiente';
   const completionAllowed = canCompleteVisit(visit);
@@ -166,6 +167,16 @@ const VisitCard = ({ visit, onConfirmVisit, onRejectVisit }: VisitCardProps) => 
           <span>📝 {visit.mensaje || 'Sin mensaje'}</span>
           <span>🏷 {visit.serviceNombre || 'Servicio'}</span>
         </div>
+      </div>
+
+      <div className="service-owner-dashboard__visit-actions">
+        <button
+          type="button"
+          className="service-owner-dashboard__visit-action"
+          onClick={() => onViewDetail?.(visit)}
+        >
+          Ver detalle
+        </button>
       </div>
 
       {isPending && (
@@ -315,6 +326,7 @@ interface ServiceOwnerCalendarViewProps {
   onClearDay: () => void;
   onConfirmVisit: (visit: VisitDto) => void;
   onRejectVisit: (visit: VisitDto) => void;
+  onViewVisitDetail: (visit: VisitDto) => void;
   onConfirmReservation: (reservation: ReservationDto) => void;
   onRejectReservation: (reservation: ReservationDto) => void;
   onViewReservationDetail: (reservation: ReservationDto) => void;
@@ -337,6 +349,7 @@ const ServiceOwnerCalendarView = ({
   onClearDay,
   onConfirmVisit,
   onRejectVisit,
+  onViewVisitDetail,
   onConfirmReservation,
   onRejectReservation,
   onViewReservationDetail,
@@ -357,7 +370,7 @@ const ServiceOwnerCalendarView = ({
     return (
       <div className="service-owner-dashboard__day-list">
         {dayVisitsCount > 0 && selectedDayVisits.map((visit) => (
-          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} />
+          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} onViewDetail={onViewVisitDetail} />
         ))}
         {dayReservationsCount > 0 && selectedDayReservations.map((reservation) => (
           <ReservationCard
@@ -454,9 +467,10 @@ interface ServiceOwnerListViewProps {
   visits: VisitDto[];
   onConfirmVisit: (visit: VisitDto) => void;
   onRejectVisit: (visit: VisitDto) => void;
+  onViewVisitDetail: (visit: VisitDto) => void;
 }
 
-const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit }: ServiceOwnerListViewProps) => (
+const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit, onViewVisitDetail }: ServiceOwnerListViewProps) => (
   <div className="service-owner-dashboard__list-view">
     <div className="service-owner-dashboard__list-summary">
       <h2>Visitas ordenadas por fecha</h2>
@@ -470,7 +484,7 @@ const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit }: Service
     ) : (
       <div className="service-owner-dashboard__list">
         {visits.map((visit) => (
-          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} />
+          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} onViewDetail={onViewVisitDetail} />
         ))}
       </div>
     )}
@@ -536,6 +550,74 @@ const PaymentForm = ({ form, onChange, onSubmit, onCancel, submitting, error, su
     </div>
   </div>
 );
+
+interface VisitDetailModalProps {
+  visit: VisitDto;
+  onClose: () => void;
+  onConfirmVisit: (visit: VisitDto) => void;
+  onRejectVisit: (visit: VisitDto) => void;
+}
+
+const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: VisitDetailModalProps) => {
+  const visitDate = parseReservationDate(visit.fechaHoraSolicitada);
+  const isPending = visit.estado.toLowerCase() === 'pendiente';
+  const completionAllowed = canCompleteVisit(visit);
+
+  const handleConfirm = () => {
+    onConfirmVisit(visit);
+    onClose();
+  };
+
+  const handleReject = () => {
+    onRejectVisit(visit);
+    onClose();
+  };
+
+  return (
+    <div className="service-owner-dashboard__modal-overlay" role="dialog" aria-modal="true">
+      <div className="service-owner-dashboard__modal">
+        <div className="service-owner-dashboard__modal-header">
+          <h2>Detalle de visita</h2>
+          <button type="button" className="service-owner-dashboard__modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="service-owner-dashboard__modal-body">
+          <section className="service-owner-dashboard__modal-section">
+            <h3>Cliente</h3>
+            <p>{visit.userNombre ?? 'Sin nombre'}</p>
+            {visit.userEmail && <p>{visit.userEmail}</p>}
+          </section>
+
+          <section className="service-owner-dashboard__modal-section">
+            <h3>Visita</h3>
+            <p><strong>Fecha:</strong> {visitDate ? dateFormatter.format(visitDate) : 'No disponible'}</p>
+            <p><strong>Hora:</strong> {visitDate ? timeFormatter.format(visitDate) : 'No disponible'}</p>
+            <p><strong>Estado:</strong> {visit.estado}</p>
+            {visit.serviceNombre && <p><strong>Servicio:</strong> {visit.serviceNombre}</p>}
+            {visit.mensaje && <p><strong>Mensaje:</strong> {visit.mensaje}</p>}
+          </section>
+        </div>
+
+        {isPending && (
+          <div className="service-owner-dashboard__modal-actions">
+            <button
+              type="button"
+              className="service-owner-dashboard__visit-action"
+              onClick={handleConfirm}
+              disabled={!completionAllowed}
+              title={completionAllowed ? undefined : 'Solo disponible cuando ya pasó la fecha y hora de la visita'}
+            >
+              Marcar como cumplida
+            </button>
+            <button type="button" className="service-owner-dashboard__visit-action" onClick={handleReject}>
+              Rechazar / eliminar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface ReservationDetailModalProps {
   reservation: ReservationDto;
@@ -925,6 +1007,7 @@ const ServiceOwnerDashboardPage = () => {
   const [selectionTouched, setSelectionTouched] = useState(false);
   const [confirmModalReservation, setConfirmModalReservation] = useState<ReservationDto | null>(null);
   const [detailReservation, setDetailReservation] = useState<ReservationDto | null>(null);
+  const [detailVisit, setDetailVisit] = useState<VisitDto | null>(null);
 
   useEffect(() => {
     const loadService = async () => {
@@ -1139,6 +1222,10 @@ const ServiceOwnerDashboardPage = () => {
     setDetailReservation(reservation);
   };
 
+  const handleViewVisitDetail = (visit: VisitDto) => {
+    setDetailVisit(visit);
+  };
+
   const handleSelectDay = (key: string) => {
     setSelectionTouched(true);
     setSelectedDayKey(key);
@@ -1234,12 +1321,13 @@ const ServiceOwnerDashboardPage = () => {
                 onClearDay={handleClearDay}
                 onConfirmVisit={handleConfirmVisit}
                 onRejectVisit={handleRejectVisit}
+                onViewVisitDetail={handleViewVisitDetail}
                 onConfirmReservation={handleConfirmReservation}
                 onRejectReservation={handleRejectReservation}
                 onViewReservationDetail={handleViewReservationDetail}
               />
             ) : (
-              <ServiceOwnerListView visits={sortedVisits} onConfirmVisit={handleConfirmVisit} onRejectVisit={handleRejectVisit} />
+              <ServiceOwnerListView visits={sortedVisits} onConfirmVisit={handleConfirmVisit} onRejectVisit={handleRejectVisit} onViewVisitDetail={handleViewVisitDetail} />
             )}
           </section>
 
@@ -1284,6 +1372,15 @@ const ServiceOwnerDashboardPage = () => {
           reservation={detailReservation}
           onClose={() => setDetailReservation(null)}
           onDataChange={refreshService}
+        />
+      )}
+
+      {detailVisit && (
+        <VisitDetailModal
+          visit={detailVisit}
+          onClose={() => setDetailVisit(null)}
+          onConfirmVisit={handleConfirmVisit}
+          onRejectVisit={handleRejectVisit}
         />
       )}
     </div>
