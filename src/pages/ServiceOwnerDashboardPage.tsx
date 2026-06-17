@@ -7,8 +7,10 @@ import {
   getServiceById,
   rejectReservation,
   rejectVisit,
+  updateReservaFinanciero,
 } from '../services/serviceService';
-import type { ReservationDto, Service, VisitDto } from '../types/service';
+import { createPago, updatePago } from '../services/pagoService';
+import type { PagoDto, ReservationDto, Service, VisitDto } from '../types/service';
 
 type DashboardView = 'calendario' | 'lista';
 
@@ -191,9 +193,10 @@ interface ReservationCardProps {
   variant?: 'calendar' | 'list';
   onConfirmReservation?: (reservation: ReservationDto) => void;
   onRejectReservation?: (reservation: ReservationDto) => void;
+  onViewDetail?: (reservation: ReservationDto) => void;
 }
 
-const ReservationCard = ({ reservation, variant = 'list', onConfirmReservation, onRejectReservation }: ReservationCardProps) => {
+const ReservationCard = ({ reservation, variant = 'list', onConfirmReservation, onRejectReservation, onViewDetail }: ReservationCardProps) => {
   const reservationDate = parseReservationDate(reservation.fechaReservaCliente);
 
   return (
@@ -212,6 +215,16 @@ const ReservationCard = ({ reservation, variant = 'list', onConfirmReservation, 
         <div className="service-owner-dashboard__reservation-contact">
           <span>✉️ {reservation.usuario?.email || 'Sin email'}</span>
           <span>📞 {reservation.usuario?.telefono || 'Sin teléfono'}</span>
+        </div>
+
+        <div className="service-owner-dashboard__visit-actions">
+          <button
+            type="button"
+            className="service-owner-dashboard__visit-action"
+            onClick={() => onViewDetail?.(reservation)}
+          >
+            Ver detalle
+          </button>
         </div>
       </div>
 
@@ -304,6 +317,7 @@ interface ServiceOwnerCalendarViewProps {
   onRejectVisit: (visit: VisitDto) => void;
   onConfirmReservation: (reservation: ReservationDto) => void;
   onRejectReservation: (reservation: ReservationDto) => void;
+  onViewReservationDetail: (reservation: ReservationDto) => void;
 }
 
 const ServiceOwnerCalendarView = ({
@@ -325,6 +339,7 @@ const ServiceOwnerCalendarView = ({
   onRejectVisit,
   onConfirmReservation,
   onRejectReservation,
+  onViewReservationDetail,
 }: ServiceOwnerCalendarViewProps) => {
   const dayVisitsCount = selectedDayVisits.length;
   const dayReservationsCount = selectedDayReservations.length;
@@ -351,6 +366,7 @@ const ServiceOwnerCalendarView = ({
             variant="calendar"
             onConfirmReservation={onConfirmReservation}
             onRejectReservation={onRejectReservation}
+            onViewDetail={onViewReservationDetail}
           />
         ))}
       </div>
@@ -460,6 +476,337 @@ const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit }: Service
     )}
   </div>
 );
+
+interface PaymentFormState {
+  tipoPago: string;
+  importe: string;
+  fechaPago: string;
+}
+
+const EMPTY_PAYMENT_FORM: PaymentFormState = {
+  tipoPago: 'Seña',
+  importe: '',
+  fechaPago: new Date().toISOString().split('T')[0],
+};
+
+interface PaymentFormProps {
+  form: PaymentFormState;
+  onChange: (form: PaymentFormState) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  submitting: boolean;
+  error: string | null;
+  submitLabel: string;
+}
+
+const PaymentForm = ({ form, onChange, onSubmit, onCancel, submitting, error, submitLabel }: PaymentFormProps) => (
+  <div className="service-owner-dashboard__payment-form">
+    <select
+      value={form.tipoPago}
+      onChange={(e) => onChange({ ...form, tipoPago: e.target.value })}
+      className="service-owner-dashboard__modal-input"
+    >
+      <option value="Seña">Seña</option>
+      <option value="Parcial">Parcial</option>
+      <option value="Total">Total</option>
+    </select>
+    <input
+      type="number"
+      min="0"
+      step="1"
+      value={form.importe}
+      onChange={(e) => onChange({ ...form, importe: e.target.value })}
+      placeholder="Importe ($)"
+      className="service-owner-dashboard__modal-input"
+    />
+    <input
+      type="date"
+      value={form.fechaPago}
+      onChange={(e) => onChange({ ...form, fechaPago: e.target.value })}
+      className="service-owner-dashboard__modal-input"
+    />
+    {error && <p className="service-owner-dashboard__modal-error" role="alert">{error}</p>}
+    <div className="service-owner-dashboard__modal-actions">
+      <button type="button" className="service-owner-dashboard__visit-action" onClick={onSubmit} disabled={submitting}>
+        {submitLabel}
+      </button>
+      <button type="button" className="service-owner-dashboard__visit-action" onClick={onCancel} disabled={submitting}>
+        Cancelar
+      </button>
+    </div>
+  </div>
+);
+
+interface ReservationDetailModalProps {
+  reservation: ReservationDto;
+  onClose: () => void;
+  onDataChange: () => Promise<void>;
+}
+
+const ReservationDetailModal = ({ reservation, onClose, onDataChange }: ReservationDetailModalProps) => {
+  const [editingPagoId, setEditingPagoId] = useState<string | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [form, setForm] = useState<PaymentFormState>(EMPTY_PAYMENT_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [editHoras, setEditHoras] = useState(String(reservation.horasReservadas ?? ''));
+  const [editMonto, setEditMonto] = useState(String(reservation.montoAcordado ?? ''));
+  const [editingFinanciero, setEditingFinanciero] = useState(false);
+  const [financieroError, setFinancieroError] = useState<string | null>(null);
+
+  const pagos = reservation.pagos ?? [];
+  const totalPagado = pagos.reduce((sum, p) => sum + p.importe, 0);
+  const saldoPendiente = (reservation.montoAcordado ?? 0) - totalPagado;
+  const reservationDate = parseReservationDate(reservation.fechaReservaCliente);
+
+  const handleNewPago = async () => {
+    if (!form.importe || Number(form.importe) <= 0) {
+      setFormError('El importe debe ser mayor a cero.');
+      return;
+    }
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await createPago({
+        reservaId: reservation.id,
+        tipoPago: form.tipoPago,
+        importe: Number(form.importe),
+        fechaPago: form.fechaPago,
+      });
+      setShowNewForm(false);
+      setForm(EMPTY_PAYMENT_FORM);
+      await onDataChange();
+    } catch {
+      setFormError('No se pudo registrar el pago.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditPago = async (pagoId: string) => {
+    if (!form.importe || Number(form.importe) <= 0) {
+      setFormError('El importe debe ser mayor a cero.');
+      return;
+    }
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await updatePago(pagoId, {
+        tipoPago: form.tipoPago,
+        importe: Number(form.importe),
+        fechaPago: form.fechaPago,
+      });
+      setEditingPagoId(null);
+      setForm(EMPTY_PAYMENT_FORM);
+      await onDataChange();
+    } catch {
+      setFormError('No se pudo actualizar el pago.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEditPago = (pago: PagoDto) => {
+    setEditingPagoId(pago.id);
+    setShowNewForm(false);
+    setForm({
+      tipoPago: pago.tipoPago,
+      importe: String(pago.importe),
+      fechaPago: pago.fechaPago.split('T')[0],
+    });
+    setFormError(null);
+  };
+
+  const handleUpdateFinanciero = async () => {
+    const horasNum = Number(editHoras);
+    const montoNum = Number(editMonto);
+    if (!editHoras || horasNum < 0.5) {
+      setFinancieroError('Las horas deben ser al menos 0.5.');
+      return;
+    }
+    if (!editMonto || montoNum <= 0) {
+      setFinancieroError('El monto debe ser mayor a cero.');
+      return;
+    }
+    setSubmitting(true);
+    setFinancieroError(null);
+    try {
+      await updateReservaFinanciero(reservation.id, { horasReservadas: horasNum, montoAcordado: montoNum });
+      setEditingFinanciero(false);
+      await onDataChange();
+    } catch {
+      setFinancieroError('No se pudo actualizar el acuerdo financiero.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="service-owner-dashboard__modal-overlay" role="dialog" aria-modal="true">
+      <div className="service-owner-dashboard__modal service-owner-dashboard__modal--wide">
+        <div className="service-owner-dashboard__modal-header">
+          <h2>Detalle de reserva</h2>
+          <button type="button" className="service-owner-dashboard__modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="service-owner-dashboard__modal-body">
+          <section className="service-owner-dashboard__modal-section">
+            <h3>Cliente</h3>
+            <p>{reservation.usuario?.nombre ?? 'Sin nombre'}</p>
+            <p>{reservation.usuario?.email ?? 'Sin email'}</p>
+            <p>{reservation.usuario?.telefono ?? 'Sin teléfono'}</p>
+          </section>
+
+          <section className="service-owner-dashboard__modal-section">
+            <h3>Reserva</h3>
+            <p><strong>Fecha:</strong> {reservationDate ? dateFormatter.format(reservationDate) : 'No disponible'}</p>
+            <p><strong>Hora:</strong> {reservationDate ? timeFormatter.format(reservationDate) : 'No disponible'}</p>
+            <p><strong>Estado:</strong> {reservation.confirmada ? 'Confirmada' : 'Pendiente'}</p>
+          </section>
+
+          {reservation.confirmada && (
+            <section className="service-owner-dashboard__modal-section">
+              <div className="service-owner-dashboard__modal-section-header">
+                <h3>Acuerdo financiero</h3>
+                {!editingFinanciero && (
+                  <button
+                    type="button"
+                    className="service-owner-dashboard__visit-action"
+                    onClick={() => { setEditingFinanciero(true); setFinancieroError(null); }}
+                  >
+                    Editar
+                  </button>
+                )}
+              </div>
+
+              {editingFinanciero ? (
+                <div className="service-owner-dashboard__modal-form">
+                  <label className="service-owner-dashboard__modal-label">
+                    Horas reservadas
+                    <input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      value={editHoras}
+                      onChange={(e) => setEditHoras(e.target.value)}
+                      className="service-owner-dashboard__modal-input"
+                    />
+                  </label>
+                  <label className="service-owner-dashboard__modal-label">
+                    Monto acordado ($)
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={editMonto}
+                      onChange={(e) => setEditMonto(e.target.value)}
+                      className="service-owner-dashboard__modal-input"
+                    />
+                  </label>
+                  {financieroError && <p className="service-owner-dashboard__modal-error" role="alert">{financieroError}</p>}
+                  <div className="service-owner-dashboard__modal-actions">
+                    <button type="button" className="service-owner-dashboard__visit-action" onClick={handleUpdateFinanciero} disabled={submitting}>
+                      Guardar
+                    </button>
+                    <button type="button" className="service-owner-dashboard__visit-action" onClick={() => setEditingFinanciero(false)} disabled={submitting}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p><strong>Horas reservadas:</strong> {reservation.horasReservadas ?? '—'}</p>
+                  <p><strong>Monto acordado:</strong> $ {currencyFormatter.format(reservation.montoAcordado ?? 0)}</p>
+                  <p><strong>Total pagado:</strong> $ {currencyFormatter.format(totalPagado)}</p>
+                  <p><strong>Saldo pendiente:</strong> $ {currencyFormatter.format(Math.max(0, saldoPendiente))}</p>
+                </>
+              )}
+            </section>
+          )}
+
+          {reservation.confirmada && (
+            <section className="service-owner-dashboard__modal-section">
+              <h3>Pagos registrados</h3>
+
+              {pagos.length === 0 ? (
+                <p>No hay pagos registrados todavía.</p>
+              ) : (
+                <table className="service-owner-dashboard__pagos-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Tipo</th>
+                      <th>Importe</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagos.map((pago) =>
+                      editingPagoId === pago.id ? (
+                        <tr key={pago.id}>
+                          <td colSpan={5}>
+                            <PaymentForm
+                              form={form}
+                              onChange={setForm}
+                              onSubmit={() => handleEditPago(pago.id)}
+                              onCancel={() => { setEditingPagoId(null); setForm(EMPTY_PAYMENT_FORM); }}
+                              submitting={submitting}
+                              error={formError}
+                              submitLabel="Guardar cambios"
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={pago.id}>
+                          <td>{dateFormatter.format(new Date(pago.fechaPago))}</td>
+                          <td>{timeFormatter.format(new Date(pago.fechaPago))}</td>
+                          <td>{pago.tipoPago}</td>
+                          <td>$ {currencyFormatter.format(pago.importe)}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="service-owner-dashboard__visit-action"
+                              onClick={() => startEditPago(pago)}
+                            >
+                              Editar
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              )}
+
+              {!showNewForm && !editingPagoId && (
+                <button
+                  type="button"
+                  className="service-owner-dashboard__visit-action"
+                  onClick={() => { setShowNewForm(true); setForm(EMPTY_PAYMENT_FORM); setFormError(null); }}
+                >
+                  + Registrar pago
+                </button>
+              )}
+
+              {showNewForm && (
+                <PaymentForm
+                  form={form}
+                  onChange={setForm}
+                  onSubmit={handleNewPago}
+                  onCancel={() => { setShowNewForm(false); setForm(EMPTY_PAYMENT_FORM); setFormError(null); }}
+                  submitting={submitting}
+                  error={formError}
+                  submitLabel="Registrar pago"
+                />
+              )}
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface ConfirmReservationModalProps {
   reservation: ReservationDto;
@@ -577,6 +924,7 @@ const ServiceOwnerDashboardPage = () => {
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [selectionTouched, setSelectionTouched] = useState(false);
   const [confirmModalReservation, setConfirmModalReservation] = useState<ReservationDto | null>(null);
+  const [detailReservation, setDetailReservation] = useState<ReservationDto | null>(null);
 
   useEffect(() => {
     const loadService = async () => {
@@ -665,6 +1013,13 @@ const ServiceOwnerDashboardPage = () => {
   }, [filteredReservations, service?.precioMinimo, visits]);
 
   const sortedVisits = useMemo(() => sortVisits(visits), [visits]);
+
+  const detailReservationId = detailReservation?.id;
+  useEffect(() => {
+    if (!detailReservationId || !service) return;
+    const updated = service.reservas?.find((r) => r.id === detailReservationId);
+    if (updated) setDetailReservation(updated);
+  }, [service, detailReservationId]);
 
   const handleBack = () => {
     navigate('/vendor/dashboard');
@@ -780,6 +1135,10 @@ const ServiceOwnerDashboardPage = () => {
     }
   };
 
+  const handleViewReservationDetail = (reservation: ReservationDto) => {
+    setDetailReservation(reservation);
+  };
+
   const handleSelectDay = (key: string) => {
     setSelectionTouched(true);
     setSelectedDayKey(key);
@@ -877,6 +1236,7 @@ const ServiceOwnerDashboardPage = () => {
                 onRejectVisit={handleRejectVisit}
                 onConfirmReservation={handleConfirmReservation}
                 onRejectReservation={handleRejectReservation}
+                onViewReservationDetail={handleViewReservationDetail}
               />
             ) : (
               <ServiceOwnerListView visits={sortedVisits} onConfirmVisit={handleConfirmVisit} onRejectVisit={handleRejectVisit} />
@@ -902,6 +1262,7 @@ const ServiceOwnerDashboardPage = () => {
                     variant="list"
                     onConfirmReservation={handleConfirmReservation}
                     onRejectReservation={handleRejectReservation}
+                    onViewDetail={handleViewReservationDetail}
                   />
                 ))}
               </div>
@@ -915,6 +1276,14 @@ const ServiceOwnerDashboardPage = () => {
           reservation={confirmModalReservation}
           onClose={() => setConfirmModalReservation(null)}
           onConfirm={handleSubmitConfirmReservation}
+        />
+      )}
+
+      {detailReservation && (
+        <ReservationDetailModal
+          reservation={detailReservation}
+          onClose={() => setDetailReservation(null)}
+          onDataChange={refreshService}
         />
       )}
     </div>
