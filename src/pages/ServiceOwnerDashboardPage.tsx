@@ -461,6 +461,108 @@ const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit }: Service
   </div>
 );
 
+interface ConfirmReservationModalProps {
+  reservation: ReservationDto;
+  onClose: () => void;
+  onConfirm: (horasReservadas: number, montoAcordado: number) => Promise<void>;
+}
+
+const ConfirmReservationModal = ({ reservation, onClose, onConfirm }: ConfirmReservationModalProps) => {
+  const [horas, setHoras] = useState('');
+  const [monto, setMonto] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const reservationDate = parseReservationDate(reservation.fechaReservaCliente);
+
+  const handleSubmit = async () => {
+    const horasNum = Number(horas);
+    const montoNum = Number(monto);
+    if (!horas || horasNum < 0.5) {
+      setError('Las horas reservadas deben ser al menos 0.5.');
+      return;
+    }
+    if (!monto || montoNum <= 0) {
+      setError('El monto acordado debe ser mayor a cero.');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onConfirm(horasNum, montoNum);
+    } catch {
+      setError('No se pudo confirmar. Puede haber un conflicto de horarios.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="service-owner-dashboard__modal-overlay" role="dialog" aria-modal="true">
+      <div className="service-owner-dashboard__modal">
+        <div className="service-owner-dashboard__modal-header">
+          <h2>Confirmar reserva</h2>
+          <button type="button" className="service-owner-dashboard__modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="service-owner-dashboard__modal-body">
+          <p><strong>Cliente:</strong> {reservation.usuario?.nombre ?? 'Sin nombre'}</p>
+          <p><strong>Fecha:</strong> {reservationDate ? dateFormatter.format(reservationDate) : 'No disponible'}</p>
+          <p><strong>Hora:</strong> {reservationDate ? timeFormatter.format(reservationDate) : 'No disponible'}</p>
+
+          <div className="service-owner-dashboard__modal-form">
+            <label className="service-owner-dashboard__modal-label">
+              Horas reservadas
+              <input
+                type="number"
+                min="0.5"
+                step="0.5"
+                value={horas}
+                onChange={(e) => setHoras(e.target.value)}
+                placeholder="Ej: 4"
+                className="service-owner-dashboard__modal-input"
+              />
+            </label>
+            <label className="service-owner-dashboard__modal-label">
+              Monto acordado ($)
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={monto}
+                onChange={(e) => setMonto(e.target.value)}
+                placeholder="Ej: 15000"
+                className="service-owner-dashboard__modal-input"
+              />
+            </label>
+          </div>
+
+          {error && <p className="service-owner-dashboard__modal-error" role="alert">{error}</p>}
+        </div>
+
+        <div className="service-owner-dashboard__modal-actions">
+          <button
+            type="button"
+            className="service-owner-dashboard__visit-action"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? 'Confirmando...' : 'Confirmar reserva'}
+          </button>
+          <button
+            type="button"
+            className="service-owner-dashboard__visit-action"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ServiceOwnerDashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -474,6 +576,7 @@ const ServiceOwnerDashboardPage = () => {
   const [viewMonth, setViewMonth] = useState<Date>(startOfMonth(new Date()));
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [selectionTouched, setSelectionTouched] = useState(false);
+  const [confirmModalReservation, setConfirmModalReservation] = useState<ReservationDto | null>(null);
 
   useEffect(() => {
     const loadService = async () => {
@@ -644,14 +747,20 @@ const ServiceOwnerDashboardPage = () => {
     }
   };
 
-  const handleConfirmReservation = async (reservation: ReservationDto) => {
+  const handleConfirmReservation = (reservation: ReservationDto) => {
+    setConfirmModalReservation(reservation);
+  };
+
+  const handleSubmitConfirmReservation = async (horasReservadas: number, montoAcordado: number) => {
+    if (!confirmModalReservation) return;
     try {
-      await confirmReservation(reservation.id, { horasReservadas: 0, montoAcordado: 0 });
+      await confirmReservation(confirmModalReservation.id, { horasReservadas, montoAcordado });
+      setConfirmModalReservation(null);
       await refreshService();
       setError(null);
     } catch (reservationError) {
       console.error('Error confirmando reserva', reservationError);
-      setError('No se pudo confirmar la reserva.');
+      setError('No se pudo confirmar la reserva. Puede haber un conflicto de horarios.');
     }
   };
 
@@ -800,6 +909,14 @@ const ServiceOwnerDashboardPage = () => {
           </section>
         </div>
       </section>
+
+      {confirmModalReservation && (
+        <ConfirmReservationModal
+          reservation={confirmModalReservation}
+          onClose={() => setConfirmModalReservation(null)}
+          onConfirm={handleSubmitConfirmReservation}
+        />
+      )}
     </div>
   );
 };
