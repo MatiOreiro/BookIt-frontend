@@ -1601,6 +1601,13 @@ a {
   color: #374151;
 }
 
+.service-owner-dashboard__visit-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
 .service-owner-dashboard__visit-action {
   padding: 0.5rem 1.1rem;
   border: none;
@@ -1610,11 +1617,13 @@ a {
   cursor: pointer;
   background: #6366f1;
   color: #fff;
-  transition: background 0.15s;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
 .service-owner-dashboard__visit-action:hover:not(:disabled) {
   background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
 }
 
 .service-owner-dashboard__visit-action:disabled {
