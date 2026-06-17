@@ -261,14 +261,13 @@ const ReservationCard = ({ reservation, variant = 'list', onConfirmReservation, 
 
 interface ServiceOwnerHeaderProps {
   service: Service;
-  userName: string;
   reservationCount: number;
   onBack: () => void;
   onEdit: () => void;
   onViewClientDetail: () => void;
 }
 
-const ServiceOwnerHeader = ({ service, userName, reservationCount, onBack, onEdit, onViewClientDetail }: ServiceOwnerHeaderProps) => (
+const ServiceOwnerHeader = ({ service, reservationCount, onBack, onEdit, onViewClientDetail }: ServiceOwnerHeaderProps) => (
   <div className="service-owner-dashboard__header">
     <div className="service-owner-dashboard__hero-copy">
       <button type="button" className="service-owner-dashboard__back" onClick={onBack}>
@@ -280,7 +279,6 @@ const ServiceOwnerHeader = ({ service, userName, reservationCount, onBack, onEdi
         Vista resumida de este servicio con sus visitas, sus reservas y acceso rápido para cerrar cada visita con o sin reserva.
       </p>
       <div className="service-owner-dashboard__meta">
-        <span>👤 {userName}</span>
         <span>📍 {service.ubicacion || 'Ubicación no especificada'}</span>
         <span>🏷 {service.tipoServicio || 'Servicio'}</span>
         <span>✅ {service.activo ? 'Activo' : 'Inactivo'}</span>
@@ -1308,7 +1306,6 @@ const ServiceOwnerDashboardPage = () => {
         <div className="app-shell service-owner-dashboard__shell">
           <ServiceOwnerHeader
             service={service}
-            userName={user?.name || 'Tu cuenta'}
             reservationCount={filteredReservations.length}
             onBack={handleBack}
             onEdit={handleEdit}
