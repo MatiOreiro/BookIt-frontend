@@ -140,8 +140,8 @@ const buildVisitDaySummary = (total: number, pending: number, confirmed: number)
 
 interface VisitCardProps {
   visit: VisitDto;
-  onConfirmVisit: (visit: VisitDto) => void;
-  onRejectVisit: (visit: VisitDto) => void;
+  onConfirmVisit: (visit: VisitDto) => Promise<void>;
+  onRejectVisit: (visit: VisitDto) => Promise<void>;
   onViewDetail?: (visit: VisitDto) => void;
 }
 
@@ -554,8 +554,8 @@ const PaymentForm = ({ form, onChange, onSubmit, onCancel, submitting, error, su
 interface VisitDetailModalProps {
   visit: VisitDto;
   onClose: () => void;
-  onConfirmVisit: (visit: VisitDto) => void;
-  onRejectVisit: (visit: VisitDto) => void;
+  onConfirmVisit: (visit: VisitDto) => Promise<void>;
+  onRejectVisit: (visit: VisitDto) => Promise<void>;
 }
 
 const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: VisitDetailModalProps) => {
@@ -563,14 +563,22 @@ const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: Vis
   const isPending = visit.estado.toLowerCase() === 'pendiente';
   const completionAllowed = canCompleteVisit(visit);
 
-  const handleConfirm = () => {
-    onConfirmVisit(visit);
-    onClose();
+  const handleConfirm = async () => {
+    try {
+      await onConfirmVisit(visit);
+      onClose();
+    } catch {
+      // page-level error handler in onConfirmVisit already shows error
+    }
   };
 
-  const handleReject = () => {
-    onRejectVisit(visit);
-    onClose();
+  const handleReject = async () => {
+    try {
+      await onRejectVisit(visit);
+      onClose();
+    } catch {
+      // page-level error handler in onRejectVisit already shows error
+    }
   };
 
   return (
@@ -706,6 +714,10 @@ const ReservationDetailModal = ({ reservation, onClose, onDataChange }: Reservat
       setFinancieroError('Las horas deben ser al menos 0.5.');
       return;
     }
+    if (horasNum > 24) {
+      setFinancieroError('Las horas reservadas no pueden superar las 24.');
+      return;
+    }
     if (!editMonto || montoNum <= 0) {
       setFinancieroError('El monto debe ser mayor a cero.');
       return;
@@ -817,7 +829,6 @@ const ReservationDetailModal = ({ reservation, onClose, onDataChange }: Reservat
                   <thead>
                     <tr>
                       <th>Fecha</th>
-                      <th>Hora</th>
                       <th>Tipo</th>
                       <th>Importe</th>
                       <th></th>
@@ -842,7 +853,6 @@ const ReservationDetailModal = ({ reservation, onClose, onDataChange }: Reservat
                       ) : (
                         <tr key={pago.id}>
                           <td>{dateFormatter.format(new Date(pago.fechaPago))}</td>
-                          <td>{timeFormatter.format(new Date(pago.fechaPago))}</td>
                           <td>{pago.tipoPago}</td>
                           <td>$ {currencyFormatter.format(pago.importe)}</td>
                           <td>
@@ -909,6 +919,10 @@ const ConfirmReservationModal = ({ reservation, onClose, onConfirm }: ConfirmRes
     const montoNum = Number(monto);
     if (!horas || horasNum < 0.5) {
       setError('Las horas reservadas deben ser al menos 0.5.');
+      return;
+    }
+    if (horasNum > 24) {
+      setError('Las horas reservadas no pueden superar las 24.');
       return;
     }
     if (!monto || montoNum <= 0) {
