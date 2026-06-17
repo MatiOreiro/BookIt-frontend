@@ -468,29 +468,101 @@ const ServiceOwnerCalendarView = ({
 };
 
 interface ServiceOwnerListViewProps {
+  activeTab: 'visitas' | 'reservas';
+  onTabChange: (tab: 'visitas' | 'reservas') => void;
   visits: VisitDto[];
+  reservations: ReservationDto[];
   onConfirmVisit: (visit: VisitDto) => void;
   onRejectVisit: (visit: VisitDto) => void;
   onViewVisitDetail: (visit: VisitDto) => void;
+  onConfirmReservation: (reservation: ReservationDto) => void;
+  onRejectReservation: (reservation: ReservationDto) => void;
+  onViewReservationDetail: (reservation: ReservationDto) => void;
 }
 
-const ServiceOwnerListView = ({ visits, onConfirmVisit, onRejectVisit, onViewVisitDetail }: ServiceOwnerListViewProps) => (
+const ServiceOwnerListView = ({
+  activeTab,
+  onTabChange,
+  visits,
+  reservations,
+  onConfirmVisit,
+  onRejectVisit,
+  onViewVisitDetail,
+  onConfirmReservation,
+  onRejectReservation,
+  onViewReservationDetail,
+}: ServiceOwnerListViewProps) => (
   <div className="service-owner-dashboard__list-view">
-    <div className="service-owner-dashboard__list-summary">
-      <h2>Visitas ordenadas por fecha</h2>
-      <p>Las más próximas aparecen arriba y las más lejanas abajo.</p>
+    <div className="service-owner-dashboard__switcher" role="tablist" aria-label="Vista de lista">
+      <button
+        type="button"
+        className={activeTab === 'visitas' ? 'is-active' : ''}
+        onClick={() => onTabChange('visitas')}
+      >
+        Visitas
+      </button>
+      <button
+        type="button"
+        className={activeTab === 'reservas' ? 'is-active' : ''}
+        onClick={() => onTabChange('reservas')}
+      >
+        Reservas
+      </button>
     </div>
 
-    {visits.length === 0 ? (
-      <div className="service-owner-dashboard__empty-state">
-        <p>No hay visitas para este servicio todavía.</p>
-      </div>
-    ) : (
-      <div className="service-owner-dashboard__list">
-        {visits.map((visit) => (
-          <VisitCard key={visit.id} visit={visit} onConfirmVisit={onConfirmVisit} onRejectVisit={onRejectVisit} onViewDetail={onViewVisitDetail} />
-        ))}
-      </div>
+    {activeTab === 'visitas' && (
+      <>
+        <div className="service-owner-dashboard__list-summary">
+          <h2>Visitas ordenadas por fecha</h2>
+          <p>Las más próximas aparecen arriba y las más lejanas abajo.</p>
+        </div>
+
+        {visits.length === 0 ? (
+          <div className="service-owner-dashboard__empty-state">
+            <p>No hay visitas para este servicio todavía.</p>
+          </div>
+        ) : (
+          <div className="service-owner-dashboard__list">
+            {visits.map((visit) => (
+              <VisitCard
+                key={visit.id}
+                visit={visit}
+                onConfirmVisit={onConfirmVisit}
+                onRejectVisit={onRejectVisit}
+                onViewDetail={onViewVisitDetail}
+              />
+            ))}
+          </div>
+        )}
+      </>
+    )}
+
+    {activeTab === 'reservas' && (
+      <>
+        <div className="service-owner-dashboard__list-summary">
+          <h2>Reservas agendadas</h2>
+          <p>Estas son las reservas creadas para el servicio, separadas de las visitas.</p>
+        </div>
+
+        {reservations.length === 0 ? (
+          <div className="service-owner-dashboard__empty-state">
+            <p>No hay reservas para este servicio todavía.</p>
+          </div>
+        ) : (
+          <div className="service-owner-dashboard__list">
+            {reservations.map((reservation) => (
+              <ReservationCard
+                key={reservation.id}
+                reservation={reservation}
+                variant="list"
+                onConfirmReservation={onConfirmReservation}
+                onRejectReservation={onRejectReservation}
+                onViewDetail={onViewReservationDetail}
+              />
+            ))}
+          </div>
+        )}
+      </>
     )}
   </div>
 );
