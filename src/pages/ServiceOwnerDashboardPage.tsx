@@ -1098,6 +1098,7 @@ const ServiceOwnerDashboardPage = () => {
   const [confirmModalReservation, setConfirmModalReservation] = useState<ReservationDto | null>(null);
   const [detailReservation, setDetailReservation] = useState<ReservationDto | null>(null);
   const [detailVisit, setDetailVisit] = useState<VisitDto | null>(null);
+  const [listTab, setListTab] = useState<'visitas' | 'reservas'>('visitas');
 
   useEffect(() => {
     const loadService = async () => {
@@ -1388,7 +1389,7 @@ const ServiceOwnerDashboardPage = () => {
 
           <section className="service-owner-dashboard__content">
             <div className="service-owner-dashboard__switcher" role="tablist" aria-label="Vista de visitas del servicio">
-              <button type="button" className={view === 'calendario' ? 'is-active' : ''} onClick={() => setView('calendario')}>
+              <button type="button" className={view === 'calendario' ? 'is-active' : ''} onClick={() => { setView('calendario'); setListTab('visitas'); }}>
                 Calendario
               </button>
               <button type="button" className={view === 'lista' ? 'is-active' : ''} onClick={() => setView('lista')}>
@@ -1420,33 +1421,18 @@ const ServiceOwnerDashboardPage = () => {
                 onViewReservationDetail={handleViewReservationDetail}
               />
             ) : (
-              <ServiceOwnerListView visits={sortedVisits} onConfirmVisit={handleConfirmVisit} onRejectVisit={handleRejectVisit} onViewVisitDetail={handleViewVisitDetail} />
-            )}
-          </section>
-
-          <section className="service-owner-dashboard__reservations-section">
-            <div className="service-owner-dashboard__list-summary">
-              <h2>Reservas agendadas</h2>
-              <p>Estas son las reservas creadas para el servicio, separadas de las visitas.</p>
-            </div>
-
-            {filteredReservations.length === 0 ? (
-              <div className="service-owner-dashboard__empty-state">
-                <p>No hay reservas para este servicio todavía.</p>
-              </div>
-            ) : (
-              <div className="service-owner-dashboard__list">
-                {filteredReservations.map((reservation) => (
-                  <ReservationCard
-                    key={reservation.id}
-                    reservation={reservation}
-                    variant="list"
-                    onConfirmReservation={handleConfirmReservation}
-                    onRejectReservation={handleRejectReservation}
-                    onViewDetail={handleViewReservationDetail}
-                  />
-                ))}
-              </div>
+              <ServiceOwnerListView
+                activeTab={listTab}
+                onTabChange={setListTab}
+                visits={sortedVisits}
+                reservations={filteredReservations}
+                onConfirmVisit={handleConfirmVisit}
+                onRejectVisit={handleRejectVisit}
+                onViewVisitDetail={handleViewVisitDetail}
+                onConfirmReservation={handleConfirmReservation}
+                onRejectReservation={handleRejectReservation}
+                onViewReservationDetail={handleViewReservationDetail}
+              />
             )}
           </section>
         </div>
