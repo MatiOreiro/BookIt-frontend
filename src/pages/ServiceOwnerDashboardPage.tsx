@@ -630,7 +630,7 @@ interface VisitDetailModalProps {
   visit: VisitDto;
   onClose: () => void;
   onConfirmVisit: (visit: VisitDto) => void;
-  onRejectVisit: (visit: VisitDto) => void;
+  onRejectVisit: () => Promise<void>;
 }
 
 const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: VisitDetailModalProps) => {
@@ -643,8 +643,8 @@ const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: Vis
     onClose();
   };
 
-  const handleReject = () => {
-    onRejectVisit(visit);
+  const handleReject = async () => {
+    await onRejectVisit();
     onClose();
   };
 
@@ -1646,7 +1646,7 @@ const ServiceOwnerDashboardPage = () => {
           visit={detailVisit}
           onClose={() => setDetailVisit(null)}
           onConfirmVisit={handleConfirmVisit}
-          onRejectVisit={handleRejectVisit}
+          onRejectVisit={() => handleRejectVisit(detailVisit)}
         />
       )}
 
