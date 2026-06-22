@@ -48,21 +48,20 @@ const VendorDashboardPage = () => {
     const pendingVisits = ownerVisits.filter((visit) => visit.estado.toLowerCase() === 'pendiente');
     const confirmedReservations = ownerReservations.filter((reservation) => reservation.confirmada);
 
-    const income = confirmedReservations.reduce((total, reservation) => {
-      const reservationService = services.find((service) => service.id === reservation.serviceId);
-      return total + (reservationService?.precioMinimo ?? 0);
-    }, 0);
+    const income = services
+      .flatMap((service) => service.reservas ?? [])
+      .flatMap((reservation) => reservation.pagos ?? [])
+      .reduce((total, pago) => total + pago.importe, 0);
 
-    const potentialIncome = ownerReservations.reduce((total, reservation) => {
-      const reservationService = services.find((service) => service.id === reservation.serviceId);
-      return total + (reservationService?.precioMinimo ?? 0);
-    }, 0);
+    const potentialIncome = services
+      .flatMap((service) => service.reservas ?? [])
+      .reduce((total, reservation) => total + (reservation.montoAcordado ?? 0), 0);
 
     return [
       { label: 'Visitas pendientes', value: String(pendingVisits.length), tone: 'is-warning', icon: '▣' },
       { label: 'Pre-reservas', value: String(ownerReservations.length), tone: 'is-warning', icon: '▣' },
       { label: 'Reservas confirmadas', value: String(confirmedReservations.length), tone: 'is-success', icon: '▣' },
-      { label: 'Ingresos generales', value: `$ ${currencyFormatter.format(income)}`, tone: 'is-info', icon: '$' },
+      { label: 'Ingresos registrados', value: `$ ${currencyFormatter.format(income)}`, tone: 'is-info', icon: '$' },
       { label: 'Ingresos potenciales', value: `$ ${currencyFormatter.format(potentialIncome)}`, tone: 'is-purple', icon: '⇢' },
     ];
   }, [services]);
