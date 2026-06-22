@@ -145,8 +145,8 @@ const buildVisitDaySummary = (total: number, pending: number, confirmed: number)
 
 interface VisitCardProps {
   visit: VisitDto;
-  onConfirmVisit: (visit: VisitDto) => Promise<void>;
-  onRejectVisit: (visit: VisitDto) => Promise<void>;
+  onConfirmVisit: (visit: VisitDto) => void;
+  onRejectVisit: (visit: VisitDto) => void;
   onViewDetail?: (visit: VisitDto) => void;
 }
 
@@ -629,8 +629,8 @@ const PaymentForm = ({ form, onChange, onSubmit, onCancel, submitting, error, su
 interface VisitDetailModalProps {
   visit: VisitDto;
   onClose: () => void;
-  onConfirmVisit: (visit: VisitDto) => Promise<void>;
-  onRejectVisit: (visit: VisitDto) => Promise<void>;
+  onConfirmVisit: (visit: VisitDto) => void;
+  onRejectVisit: (visit: VisitDto) => void;
 }
 
 const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: VisitDetailModalProps) => {
@@ -638,22 +638,14 @@ const VisitDetailModal = ({ visit, onClose, onConfirmVisit, onRejectVisit }: Vis
   const isPending = visit.estado.toLowerCase() === 'pendiente';
   const completionAllowed = canCompleteVisit(visit);
 
-  const handleConfirm = async () => {
-    try {
-      await onConfirmVisit(visit);
-      onClose();
-    } catch {
-      // page-level error handler in onConfirmVisit already shows error
-    }
+  const handleConfirm = () => {
+    onConfirmVisit(visit);
+    onClose();
   };
 
-  const handleReject = async () => {
-    try {
-      await onRejectVisit(visit);
-      onClose();
-    } catch {
-      // page-level error handler in onRejectVisit already shows error
-    }
+  const handleReject = () => {
+    onRejectVisit(visit);
+    onClose();
   };
 
   return (
@@ -975,6 +967,189 @@ const ReservationDetailModal = ({ reservation, onClose, onDataChange }: Reservat
   );
 };
 
+interface VisitConfirmReservationForm {
+  fechaReservaCliente: string;
+  horasReservadas: string;
+  montoAcordado: string;
+}
+
+interface ConfirmVisitModalProps {
+  visit: VisitDto;
+  onClose: () => void;
+  onConfirmWithReservation: (data: { fechaReservaCliente: string; horasReservadas: number; montoAcordado: number }) => Promise<void>;
+  onConfirmWithoutReservation: () => Promise<void>;
+  onReject: () => Promise<void>;
+}
+
+const ConfirmVisitModal = ({ visit, onClose, onConfirmWithReservation, onConfirmWithoutReservation, onReject }: ConfirmVisitModalProps) => {
+  const [phase, setPhase] = useState<'options' | 'reservation-form'>('options');
+  const [form, setForm] = useState<VisitConfirmReservationForm>({
+    fechaReservaCliente: visit.fechaHoraSolicitada
+      ? visit.fechaHoraSolicitada.slice(0, 16)
+      : new Date().toISOString().slice(0, 16),
+    horasReservadas: '',
+    montoAcordado: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const visitDate = parseReservationDate(visit.fechaHoraSolicitada);
+
+  const handleConfirmWithoutReservation = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirmWithoutReservation();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    setSubmitting(true);
+    try {
+      await onReject();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitReservation = async () => {
+    const horasNum = Number(form.horasReservadas);
+    const montoNum = Number(form.montoAcordado);
+    if (!form.fechaReservaCliente) {
+      setError('La fecha y hora de la reserva son obligatorias.');
+      return;
+    }
+    if (!form.horasReservadas || horasNum < 0.5) {
+      setError('Las horas deben ser al menos 0.5.');
+      return;
+    }
+    if (horasNum > 24) {
+      setError('Las horas no pueden superar 24.');
+      return;
+    }
+    if (!form.montoAcordado || montoNum <= 0) {
+      setError('El monto debe ser mayor a cero.');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onConfirmWithReservation({
+        fechaReservaCliente: new Date(form.fechaReservaCliente).toISOString(),
+        horasReservadas: horasNum,
+        montoAcordado: montoNum,
+      });
+    } catch {
+      setError('No se pudo crear la reserva.');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="service-owner-dashboard__modal-overlay" role="dialog" aria-modal="true">
+      <div className="service-owner-dashboard__modal">
+        <div className="service-owner-dashboard__modal-header">
+          <h2>Visita cumplida</h2>
+          <button type="button" className="service-owner-dashboard__modal-close" onClick={onClose} disabled={submitting}>✕</button>
+        </div>
+
+        <div className="service-owner-dashboard__modal-body">
+          <p><strong>Cliente:</strong> {visit.userNombre ?? 'Sin nombre'}</p>
+          <p><strong>Fecha de visita:</strong> {visitDate ? dateFormatter.format(visitDate) : 'No disponible'}</p>
+
+          {phase === 'options' && (
+            <div className="service-owner-dashboard__modal-actions" style={{ flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="service-owner-dashboard__visit-action"
+                onClick={() => setPhase('reservation-form')}
+                disabled={submitting}
+              >
+                Crear reserva
+              </button>
+              <button
+                type="button"
+                className="service-owner-dashboard__visit-action"
+                onClick={handleConfirmWithoutReservation}
+                disabled={submitting}
+              >
+                Confirmar sin reserva
+              </button>
+              <button
+                type="button"
+                className="service-owner-dashboard__visit-action"
+                onClick={handleReject}
+                disabled={submitting}
+              >
+                Rechazar / eliminar visita
+              </button>
+            </div>
+          )}
+
+          {phase === 'reservation-form' && (
+            <div className="service-owner-dashboard__modal-form" style={{ marginTop: '1rem' }}>
+              <label className="service-owner-dashboard__modal-label">
+                Fecha y hora de la reserva
+                <input
+                  type="datetime-local"
+                  value={form.fechaReservaCliente}
+                  onChange={(e) => setForm({ ...form, fechaReservaCliente: e.target.value })}
+                  className="service-owner-dashboard__modal-input"
+                />
+              </label>
+              <label className="service-owner-dashboard__modal-label">
+                Monto acordado ($)
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.montoAcordado}
+                  onChange={(e) => setForm({ ...form, montoAcordado: e.target.value })}
+                  placeholder="Ej: 15000"
+                  className="service-owner-dashboard__modal-input"
+                />
+              </label>
+              <label className="service-owner-dashboard__modal-label">
+                Cantidad de horas
+                <input
+                  type="number"
+                  min="0.5"
+                  max="24"
+                  step="0.5"
+                  value={form.horasReservadas}
+                  onChange={(e) => setForm({ ...form, horasReservadas: e.target.value })}
+                  placeholder="Ej: 3"
+                  className="service-owner-dashboard__modal-input"
+                />
+              </label>
+              {error && <p className="service-owner-dashboard__modal-error" role="alert">{error}</p>}
+              <div className="service-owner-dashboard__modal-actions">
+                <button
+                  type="button"
+                  className="service-owner-dashboard__visit-action"
+                  onClick={handleSubmitReservation}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Creando...' : 'Crear reserva'}
+                </button>
+                <button
+                  type="button"
+                  className="service-owner-dashboard__visit-action"
+                  onClick={() => { setPhase('options'); setError(null); }}
+                  disabled={submitting}
+                >
+                  Volver
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface ConfirmReservationModalProps {
   reservation: ReservationDto;
   onClose: () => void;
@@ -1097,6 +1272,7 @@ const ServiceOwnerDashboardPage = () => {
   const [detailReservation, setDetailReservation] = useState<ReservationDto | null>(null);
   const [detailVisit, setDetailVisit] = useState<VisitDto | null>(null);
   const [listTab, setListTab] = useState<'visitas' | 'reservas'>('visitas');
+  const [confirmVisitModalVisit, setConfirmVisitModalVisit] = useState<VisitDto | null>(null);
 
   useEffect(() => {
     const loadService = async () => {
@@ -1225,39 +1401,36 @@ const ServiceOwnerDashboardPage = () => {
     setService(refreshedService);
   };
 
-  const handleConfirmVisit = async (visit: VisitDto) => {
+  const handleConfirmVisit = (visit: VisitDto) => {
     if (!canCompleteVisit(visit)) {
       setError('Solo podés marcar como cumplida una visita cuando ya pasó su fecha y hora.');
       return;
     }
+    setConfirmVisitModalVisit(visit);
+  };
 
-    const option = globalThis.prompt(
-      'Visita cumplida. Elegí una acción:\n1) Crear reserva\n2) Confirmar visita sin reserva\n3) Rechazar/eliminar visita\n\nEscribí 1, 2 o 3.',
-      '1',
-    );
+  const handleConfirmVisitWithReservation = async (data: { fechaReservaCliente: string; horasReservadas: number; montoAcordado: number }) => {
+    if (!confirmVisitModalVisit) return;
+    await confirmVisitAndMaybeCreateReservation(confirmVisitModalVisit.id, true, data);
+    setConfirmVisitModalVisit(null);
+    await refreshService();
+    setError(null);
+  };
 
-    if (!option) {
-      return;
-    }
+  const handleConfirmVisitWithoutReservation = async () => {
+    if (!confirmVisitModalVisit) return;
+    await confirmVisitAndMaybeCreateReservation(confirmVisitModalVisit.id, false);
+    setConfirmVisitModalVisit(null);
+    await refreshService();
+    setError(null);
+  };
 
-    try {
-      if (option === '1') {
-        await confirmVisitAndMaybeCreateReservation(visit.id, true);
-      } else if (option === '2') {
-        await confirmVisitAndMaybeCreateReservation(visit.id, false);
-      } else if (option === '3') {
-        await rejectVisit(visit.id);
-      } else {
-        setError('Opción inválida. Debe ser 1, 2 o 3.');
-        return;
-      }
-
-      await refreshService();
-      setError(null);
-    } catch (visitError) {
-      console.error('Error confirmando visita', visitError);
-      setError('No se pudo confirmar la visita.');
-    }
+  const handleRejectVisitFromModal = async () => {
+    if (!confirmVisitModalVisit) return;
+    await rejectVisit(confirmVisitModalVisit.id);
+    setConfirmVisitModalVisit(null);
+    await refreshService();
+    setError(null);
   };
 
   const handleRejectVisit = async (visit: VisitDto) => {
@@ -1456,6 +1629,16 @@ const ServiceOwnerDashboardPage = () => {
           onClose={() => setDetailVisit(null)}
           onConfirmVisit={handleConfirmVisit}
           onRejectVisit={handleRejectVisit}
+        />
+      )}
+
+      {confirmVisitModalVisit && (
+        <ConfirmVisitModal
+          visit={confirmVisitModalVisit}
+          onClose={() => setConfirmVisitModalVisit(null)}
+          onConfirmWithReservation={handleConfirmVisitWithReservation}
+          onConfirmWithoutReservation={handleConfirmVisitWithoutReservation}
+          onReject={handleRejectVisitFromModal}
         />
       )}
     </div>
