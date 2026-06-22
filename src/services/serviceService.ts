@@ -2,6 +2,7 @@ import axios from 'axios';
 import apiClient from '../api/axiosClient';
 import type {
   ConfirmarReservaRequest,
+  ConfirmVisitReservationData,
   CreateReservaRequest,
   CreateVisitaRequest,
   PagoDto,
@@ -257,8 +258,15 @@ export const createReserva = async (data: CreateReservaRequest): Promise<Reserva
 export const confirmVisitAndMaybeCreateReservation = async (
   visitaId: string,
   crearReserva: boolean,
+  reservationData?: ConfirmVisitReservationData,
 ): Promise<unknown> => {
-  const response = await apiClient.post<unknown>(`/visitas/${visitaId}/confirmar`, { CrearReserva: crearReserva });
+  const body: Record<string, unknown> = { CrearReserva: crearReserva };
+  if (crearReserva && reservationData) {
+    body.FechaReservaCliente = reservationData.fechaReservaCliente;
+    body.HorasReservadas = reservationData.horasReservadas;
+    body.MontoAcordado = reservationData.montoAcordado;
+  }
+  const response = await apiClient.post<unknown>(`/visitas/${visitaId}/confirmar`, body);
   return response.data;
 };
 

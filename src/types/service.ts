@@ -153,3 +153,9 @@ export interface ServiceFilters {
   tipoServicio?: string;
   categoryIds?: string[];
 }
+
+export interface ConfirmVisitReservationData {
+  fechaReservaCliente: string;
+  horasReservadas: number;
+  montoAcordado: number;
+}
