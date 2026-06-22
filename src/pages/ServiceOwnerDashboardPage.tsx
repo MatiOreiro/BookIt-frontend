@@ -1411,26 +1411,44 @@ const ServiceOwnerDashboardPage = () => {
 
   const handleConfirmVisitWithReservation = async (data: { fechaReservaCliente: string; horasReservadas: number; montoAcordado: number }) => {
     if (!confirmVisitModalVisit) return;
-    await confirmVisitAndMaybeCreateReservation(confirmVisitModalVisit.id, true, data);
-    setConfirmVisitModalVisit(null);
-    await refreshService();
-    setError(null);
+    try {
+      await confirmVisitAndMaybeCreateReservation(confirmVisitModalVisit.id, true, data);
+      await refreshService();
+      setError(null);
+    } catch (error) {
+      console.error('Error confirmando visita con reserva', error);
+      setError('No se pudo confirmar la visita.');
+    } finally {
+      setConfirmVisitModalVisit(null);
+    }
   };
 
   const handleConfirmVisitWithoutReservation = async () => {
     if (!confirmVisitModalVisit) return;
-    await confirmVisitAndMaybeCreateReservation(confirmVisitModalVisit.id, false);
-    setConfirmVisitModalVisit(null);
-    await refreshService();
-    setError(null);
+    try {
+      await confirmVisitAndMaybeCreateReservation(confirmVisitModalVisit.id, false);
+      await refreshService();
+      setError(null);
+    } catch (error) {
+      console.error('Error confirmando visita sin reserva', error);
+      setError('No se pudo confirmar la visita.');
+    } finally {
+      setConfirmVisitModalVisit(null);
+    }
   };
 
   const handleRejectVisitFromModal = async () => {
     if (!confirmVisitModalVisit) return;
-    await rejectVisit(confirmVisitModalVisit.id);
-    setConfirmVisitModalVisit(null);
-    await refreshService();
-    setError(null);
+    try {
+      await rejectVisit(confirmVisitModalVisit.id);
+      await refreshService();
+      setError(null);
+    } catch (error) {
+      console.error('Error rechazando visita desde modal', error);
+      setError('No se pudo rechazar la visita.');
+    } finally {
+      setConfirmVisitModalVisit(null);
+    }
   };
 
   const handleRejectVisit = async (visit: VisitDto) => {
