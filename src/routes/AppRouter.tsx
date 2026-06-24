@@ -12,6 +12,7 @@ import ServiceOwnerDashboardPage from '../pages/ServiceOwnerDashboardPage';
 import ServiceReservationPage from '../pages/ServiceReservationPage';
 import HomePage from '../pages/HomePage';
 import ServicesListPage from '../pages/ServicesListPage';
+import MisTramitesPage from '../pages/MisTramitesPage';
 import { getServiceById } from '../services/serviceService';
 import type { Service } from '../types/service';
 import { setNavigate } from '../utils/navigation';
@@ -317,6 +318,14 @@ const AppRouter = () => {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mis-tramites"
+            element={
+              <ProtectedRoute>
+                <MisTramitesPage />
               </ProtectedRoute>
             }
           />

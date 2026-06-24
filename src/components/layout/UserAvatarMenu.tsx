@@ -78,10 +78,14 @@ const UserAvatarMenu = ({ user, logout }: UserAvatarMenuProps) => {
           >
             Registrar servicio
           </NavLink>
-          <span className="app-user-menu__item--disabled" aria-disabled="true">
+          <NavLink
+            to="/mis-tramites"
+            className="app-user-menu__item"
+            role="menuitem"
+            onClick={close}
+          >
             Mis trámites
-            <span className="app-user-menu__item-badge">(próximamente)</span>
-          </span>
+          </NavLink>
           <hr className="app-user-menu__separator" />
           <button
             type="button"
