@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { getServices } from '../../services/serviceService';
+import UserAvatarMenu from './UserAvatarMenu';
 
 const AppHeader = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const isVendor = user?.role === 'vendedor' || user?.role === 'vendor' || user?.role === 'salon';
   const [hasService, setHasService] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const loadVendorServices = async () => {
@@ -16,7 +15,6 @@ const AppHeader = () => {
         setHasService(false);
         return;
       }
-
       try {
         const services = await getServices();
         setHasService(
@@ -32,17 +30,6 @@ const AppHeader = () => {
 
     loadVendorServices();
   }, [isAuthenticated, isVendor, user?.id]);
-
-  useEffect(() => {
-    const handleDocumentClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleDocumentClick);
-    return () => document.removeEventListener('mousedown', handleDocumentClick);
-  }, []);
 
   return (
     <header className="app-header">
@@ -67,44 +54,15 @@ const AppHeader = () => {
           </a>
         </nav>
 
-        <div className="app-header__actions" ref={menuRef}>
+        <div className="app-header__actions">
           {isAuthenticated ? (
             <>
-              <div className="app-user-menu">
-                <button
-                  type="button"
-                  className="app-user-chip app-user-chip--button"
-                  onClick={() => setIsMenuOpen((open) => !open)}
-                  aria-haspopup="menu"
-                  aria-expanded={isMenuOpen}
-                >
-                  Hola, {user?.name || 'usuario'}
-                </button>
-
-                {isMenuOpen && (
-                  <div className="app-user-menu__dropdown" role="menu">
-                    <NavLink
-                      to="/change-password"
-                      className="app-user-menu__item"
-                      role="menuitem"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Cambiar contraseña
-                    </NavLink>
-                  </div>
-                )}
-              </div>
               {isVendor && hasService && (
                 <NavLink to="/vendor/dashboard" className="app-button app-button--ghost">
                   Panel Dueño
                 </NavLink>
               )}
-              <NavLink to="/services/register" className="app-button app-button--ghost">
-                Registrar servicio
-              </NavLink>
-              <button type="button" onClick={logout} className="app-button app-button--text">
-                Cerrar sesión
-              </button>
+              <UserAvatarMenu user={user!} logout={logout} />
             </>
           ) : (
             <>
