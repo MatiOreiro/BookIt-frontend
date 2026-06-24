@@ -99,6 +99,12 @@ const normalizeReservation = (raw: unknown): ReservationDto => {
     montoAcordado: pickNullableNumber(item.montoAcordado ?? item.MontoAcordado),
     horasReservadas: pickNullableNumber(item.horasReservadas ?? item.HorasReservadas),
     pagos: getArray(item.pagos ?? item.Pagos).map(normalizePago),
+    serviceNombre: pickString(item.serviceNombre ?? item.ServiceNombre) || null,
+    precioMinimo: pickNullableNumber(item.precioMinimo ?? item.PrecioMinimo),
+    precioMaximo: pickNullableNumber(item.precioMaximo ?? item.PrecioMaximo),
+    vendorNombre: pickString(item.vendorNombre ?? item.VendorNombre) || null,
+    vendorEmail: pickString(item.vendorEmail ?? item.VendorEmail) || null,
+    vendorTelefono: pickString(item.vendorTelefono ?? item.VendorTelefono) || null,
   };
 };
 
@@ -115,6 +121,9 @@ const normalizeVisit = (raw: unknown): VisitDto => {
     estado: pickString(item.estado ?? item.Estado),
     mensaje: pickString(item.mensaje ?? item.Mensaje) || null,
     fechaCreacion: pickString(item.fechaCreacion ?? item.FechaCreacion),
+    vendorNombre: pickString(item.vendorNombre ?? item.VendorNombre) || null,
+    vendorEmail: pickString(item.vendorEmail ?? item.VendorEmail) || null,
+    vendorTelefono: pickString(item.vendorTelefono ?? item.VendorTelefono) || null,
   };
 };
 
@@ -327,4 +336,16 @@ export const getServices = async (filters?: ServiceFilters): Promise<Service[]> 
     console.error('Error fetching services:', error);
     return [];
   }
+};
+
+export const getMyReservas = async (): Promise<ReservationDto[]> => {
+  const response = await apiClient.get<unknown>('/reservas/mis-reservas');
+  const items = Array.isArray(response.data) ? response.data : [];
+  return items.map(normalizeReservation);
+};
+
+export const getMyVisitas = async (): Promise<VisitDto[]> => {
+  const response = await apiClient.get<unknown>('/visitas/mis-visitas');
+  const items = Array.isArray(response.data) ? response.data : [];
+  return items.map(normalizeVisit);
 };

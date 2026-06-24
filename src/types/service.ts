@@ -82,6 +82,12 @@ export interface ReservationDto {
   montoAcordado?: number | null;
   horasReservadas?: number | null;
   pagos?: PagoDto[];
+  serviceNombre?: string | null;
+  precioMinimo?: number | null;
+  precioMaximo?: number | null;
+  vendorNombre?: string | null;
+  vendorEmail?: string | null;
+  vendorTelefono?: string | null;
 }
 
 export interface VisitDto {
@@ -95,6 +101,9 @@ export interface VisitDto {
   estado: string;
   mensaje?: string | null;
   fechaCreacion: string;
+  vendorNombre?: string | null;
+  vendorEmail?: string | null;
+  vendorTelefono?: string | null;
 }
 
 export interface DepartamentoDto {
