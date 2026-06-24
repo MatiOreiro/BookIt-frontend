@@ -2740,3 +2740,297 @@ a {
     min-height: 280px;
   }
 }
+
+/* ===== Mis Trámites ===== */
+
+.mis-tramites {
+  min-height: 60vh;
+  padding: 3rem 0 5rem;
+}
+
+.mis-tramites__shell {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.mis-tramites__header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0 0 0.35rem;
+}
+
+.mis-tramites__subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.mis-tramites__state {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.mis-tramites__state--error {
+  color: #dc2626;
+}
+
+.mis-tramites__tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.mis-tramites__tab {
+  padding: 0.6rem 1.2rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 0.5rem 0.5rem 0 0;
+  transition: color 150ms ease, border-color 150ms ease;
+  margin-bottom: -1px;
+}
+
+.mis-tramites__tab:hover {
+  color: var(--text);
+}
+
+.mis-tramites__tab.is-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.mis-tramites__empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.mis-tramites__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Tramite cards */
+
+.tramite-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.25rem 1.4rem;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tramite-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tramite-card__badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.tramite-card__badge--reserva {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.tramite-card__badge--visita {
+  background: rgba(255, 184, 108, 0.18);
+  color: #c07000;
+}
+
+.tramite-card__badge--pendiente {
+  background: rgba(120, 87, 167, 0.1);
+  color: var(--text-muted);
+}
+
+.tramite-card__badge--confirmada {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.tramite-card__badge--pago-seña {
+  background: rgba(234, 179, 8, 0.12);
+  color: #a16207;
+}
+
+.tramite-card__badge--pago-parcial {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+}
+
+.tramite-card__badge--pago-total {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.tramite-card__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.tramite-card__date {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.tramite-card__monto {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.tramite-card__vendor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.tramite-card__vendor-row {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+/* Calculator */
+
+.mis-tramites__calculator {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem 1.5rem 1.75rem;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.calculator__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.calculator__subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.calculator__table-wrapper {
+  overflow-x: auto;
+}
+
+.calculator__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.calculator__table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.calculator__table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.calculator__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.calculator__row--selected td {
+  background: var(--primary-soft);
+}
+
+.calculator__service-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.calculator__service-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calculator__service-date {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.calculator__amount-cell {
+  min-width: 180px;
+}
+
+.calculator__fixed-amount {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.calculator__radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.calculator__radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.calculator__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 2px solid var(--border-strong);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.calculator__total-amount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+}
