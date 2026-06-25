@@ -214,6 +214,28 @@ const ServiceDetailPage = () => {
                   <p>{service.descripcion || 'Este servicio no tiene una descripción detallada cargada todavía.'}</p>
                 </div>
 
+                {service.serviciosAsociados && service.serviciosAsociados.length > 0 && (
+                  <div className="service-detail__section">
+                    <h2>Servicios disponibles en este salón</h2>
+                    <div className="service-detail__asociados-grid">
+                      {service.serviciosAsociados.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          className="service-detail__asociado-card"
+                          onClick={() => navigate(`/services/${s.id}`)}
+                        >
+                          <span className="service-detail__asociado-tipo">{s.tipoServicio}</span>
+                          <strong className="service-detail__asociado-nombre">{s.nombre}</strong>
+                          <span className="service-detail__asociado-precio">
+                            Desde $ {currencyFormatter.format(s.precioMinimo)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="service-detail__section">
                   <h2>Datos generales</h2>
                   <div className="service-detail__meta-grid">
