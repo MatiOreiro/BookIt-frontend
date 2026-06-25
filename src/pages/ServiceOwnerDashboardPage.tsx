@@ -1,15 +1,18 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
+  asociarServicio,
   confirmReservation,
   confirmVisitAndMaybeCreateReservation,
   getServiceById,
+  getServicesByVendorId,
+  quitarServicioAsociado,
   rejectReservation,
   rejectVisit,
   updateReservaFinanciero,
 } from '../services/serviceService';
 import { createPago, updatePago } from '../services/pagoService';
-import type { PagoDto, ReservationDto, Service, VisitDto } from '../types/service';
+import type { PagoDto, ReservationDto, Service, ServicioAsociadoDto, VisitDto } from '../types/service';
 
 type DashboardView = 'calendario' | 'lista';
 
@@ -36,6 +39,9 @@ const timeFormatter = new Intl.DateTimeFormat('es-UY', {
   hour: '2-digit',
   minute: '2-digit',
 });
+
+const isSalonType = (tipoServicio: string) =>
+  tipoServicio.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim().includes('salon');
 
 const capitalizeText = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -1256,6 +1262,141 @@ const ConfirmReservationModal = ({ reservation, onClose, onConfirm }: ConfirmRes
   );
 };
 
+interface AsociarServicioModalProps {
+  salonId: string;
+  vendorId: string;
+  asociados: ServicioAsociadoDto[];
+  onClose: () => void;
+  onAsociado: () => Promise<void>;
+}
+
+const AsociarServicioModal = ({ salonId, vendorId, asociados, onClose, onAsociado }: AsociarServicioModalProps) => {
+  const navigate = useNavigate();
+  const [vendorServices, setVendorServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const services = await getServicesByVendorId(vendorId);
+        setVendorServices(services);
+      } catch {
+        setError('No se pudieron cargar los servicios.');
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    load();
+  }, [vendorId]);
+
+  const asociadosIds = new Set(asociados.map((a) => a.id));
+  const disponibles = vendorServices.filter(
+    (s) => s.id !== salonId && !asociadosIds.has(s.id) && !isSalonType(s.tipoServicio),
+  );
+
+  const handleAsociar = async () => {
+    if (!selectedId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await asociarServicio(salonId, selectedId);
+      await onAsociado();
+      onClose();
+    } catch {
+      setError('No se pudo asociar el servicio.');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="service-owner-dashboard__modal-overlay" role="dialog" aria-modal="true">
+      <div className="service-owner-dashboard__modal">
+        <div className="service-owner-dashboard__modal-header">
+          <h2>Asociar servicio al salón</h2>
+          <button type="button" className="service-owner-dashboard__modal-close" onClick={onClose} disabled={submitting}>
+            ✕
+          </button>
+        </div>
+
+        <div className="service-owner-dashboard__modal-body">
+          {loadingServices && <p>Cargando servicios...</p>}
+          {!loadingServices && !error && disponibles.length === 0 && (
+            <p>No tenés servicios disponibles para asociar. Podés crear uno nuevo.</p>
+          )}
+          {!loadingServices && disponibles.length > 0 && (
+            <div className="service-owner-dashboard__asociar-list">
+              {disponibles.map((s) => (
+                <label key={s.id} className="service-owner-dashboard__asociar-item">
+                  <input
+                    type="radio"
+                    name="servicio-asociar"
+                    value={s.id}
+                    checked={selectedId === s.id}
+                    onChange={() => setSelectedId(s.id)}
+                  />
+                  <span>
+                    <strong>{s.nombre}</strong>
+                    {' — '}
+                    <span>{s.tipoServicio}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          {error && (
+            <p className="service-owner-dashboard__modal-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div className="service-owner-dashboard__modal-actions">
+          <button
+            type="button"
+            className="service-owner-dashboard__visit-action"
+            onClick={handleAsociar}
+            disabled={!selectedId || submitting || loadingServices}
+          >
+            {submitting ? 'Asociando...' : 'Asociar'}
+          </button>
+          <button
+            type="button"
+            className="service-owner-dashboard__visit-action"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancelar
+          </button>
+        </div>
+
+        <div style={{ padding: '0 1.5rem 1.5rem' }}>
+          <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>
+            ¿No tenés el servicio aún?{' '}
+            <button
+              type="button"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: 'inherit',
+                color: 'inherit',
+              }}
+              onClick={() => navigate('/services/register')}
+            >
+              Crear nuevo servicio
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ServiceOwnerDashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1273,6 +1414,7 @@ const ServiceOwnerDashboardPage = () => {
   const [detailVisit, setDetailVisit] = useState<VisitDto | null>(null);
   const [listTab, setListTab] = useState<'visitas' | 'reservas'>('visitas');
   const [confirmVisitModalVisit, setConfirmVisitModalVisit] = useState<VisitDto | null>(null);
+  const [asociarModalOpen, setAsociarModalOpen] = useState(false);
 
   useEffect(() => {
     const loadService = async () => {
@@ -1508,6 +1650,17 @@ const ServiceOwnerDashboardPage = () => {
     setDetailVisit(visit);
   };
 
+  const handleQuitarAsociacion = async (serviceId: string) => {
+    const confirmed = globalThis.confirm('¿Querés quitar la asociación de este servicio?');
+    if (!confirmed) return;
+    try {
+      await quitarServicioAsociado(service!.id, serviceId);
+      await refreshService();
+    } catch {
+      setError('No se pudo quitar la asociación.');
+    }
+  };
+
   const handleSelectDay = (key: string) => {
     setSelectionTouched(true);
     setSelectedDayKey(key);
@@ -1573,6 +1726,56 @@ const ServiceOwnerDashboardPage = () => {
           />
 
           <ServiceOwnerMetrics metrics={metrics} />
+
+          {isSalonType(service.tipoServicio) && (
+            <section className="service-owner-dashboard__asociados">
+              <div className="service-owner-dashboard__services-header">
+                <div>
+                  <h2>Servicios asociados al salón</h2>
+                  <p>
+                    {(service.serviciosAsociados?.length ?? 0) === 0
+                      ? 'No hay servicios asociados todavía.'
+                      : `${service.serviciosAsociados!.length} servicio${service.serviciosAsociados!.length === 1 ? '' : 's'} asociado${service.serviciosAsociados!.length === 1 ? '' : 's'}.`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="vendor-dashboard__create-button"
+                  onClick={() => setAsociarModalOpen(true)}
+                >
+                  Asociar servicio
+                </button>
+              </div>
+
+              {(service.serviciosAsociados?.length ?? 0) > 0 && (
+                <div className="vendor-services-list" aria-label="Servicios asociados al salón">
+                  {service.serviciosAsociados!.map((s) => (
+                    <article key={s.id} className="service-admin-card">
+                      <div className="service-admin-card__main">
+                        <div className="service-admin-card__headline">
+                          <span className="service-admin-card__eyebrow">{s.tipoServicio}</span>
+                          <h3>{s.nombre}</h3>
+                        </div>
+                        <p className="service-admin-card__description">{s.descripcion}</p>
+                        <div className="service-admin-card__meta">
+                          <span>💲 Desde $ {currencyFormatter.format(s.precioMinimo)}</span>
+                        </div>
+                      </div>
+                      <div className="service-admin-card__actions">
+                        <button
+                          type="button"
+                          className="service-admin-card__action service-admin-card__action--danger"
+                          onClick={() => handleQuitarAsociacion(s.id)}
+                        >
+                          Quitar asociación
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="service-owner-dashboard__content">
             <div className="service-owner-dashboard__switcher" role="tablist" aria-label="Vista de visitas del servicio">
@@ -1657,6 +1860,16 @@ const ServiceOwnerDashboardPage = () => {
           onConfirmWithReservation={handleConfirmVisitWithReservation}
           onConfirmWithoutReservation={handleConfirmVisitWithoutReservation}
           onReject={handleRejectVisitFromModal}
+        />
+      )}
+
+      {asociarModalOpen && (
+        <AsociarServicioModal
+          salonId={service.id}
+          vendorId={service.vendorId}
+          asociados={service.serviciosAsociados ?? []}
+          onClose={() => setAsociarModalOpen(false)}
+          onAsociado={refreshService}
         />
       )}
     </div>
