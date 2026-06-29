@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { DayPicker } from 'react-day-picker';
-import type { Matcher } from 'react-day-picker';
 import { es } from 'date-fns/locale';
 import type { Service } from '../types/service';
 import { generateTimeSlots, getBookedSlotsForDay, getDayStatus } from '../utils/bookingAvailability';
@@ -38,7 +37,7 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
     const past = new Set<string>();
     for (const slot of slots) {
       const [h, m] = slot.split(':').map(Number);
-      if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) {
+      if (h < now.getHours() || (h === now.getHours() && m < now.getMinutes())) {
         past.add(slot);
       }
     }
@@ -66,10 +65,13 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
     ? selectedDay.toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' })
     : null;
 
-  const disabledMatchers: Matcher[] = [
-    { before: today },
-    (date: Date) => disabled || getDayStatus(service, date) === 'full',
-  ];
+  const disabledMatchers = useMemo(
+    () => [
+      { before: today },
+      (date: Date) => disabled || getDayStatus(service, date) === 'full',
+    ],
+    [today, disabled, service],
+  );
 
   return (
     <div className="booking-picker">
