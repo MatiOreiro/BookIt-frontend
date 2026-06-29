@@ -73,6 +73,16 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
     [today, disabled, service],
   );
 
+  const modifiers = useMemo(
+    () => ({
+      green: (date: Date) => getDayStatus(service, date) === 'green',
+      yellow: (date: Date) => getDayStatus(service, date) === 'yellow',
+      red: (date: Date) => getDayStatus(service, date) === 'red',
+      full: (date: Date) => getDayStatus(service, date) === 'full',
+    }),
+    [service],
+  );
+
   return (
     <div className="booking-picker">
       <DayPicker
@@ -81,12 +91,7 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
         onSelect={handleDaySelect}
         locale={es}
         disabled={disabledMatchers}
-        modifiers={{
-          green: (date: Date) => getDayStatus(service, date) === 'green',
-          yellow: (date: Date) => getDayStatus(service, date) === 'yellow',
-          red: (date: Date) => getDayStatus(service, date) === 'red',
-          full: (date: Date) => getDayStatus(service, date) === 'full',
-        }}
+        modifiers={modifiers}
         modifiersClassNames={{
           green: 'booking-day--green',
           yellow: 'booking-day--yellow',
