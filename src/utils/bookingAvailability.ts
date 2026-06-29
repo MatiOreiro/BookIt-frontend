@@ -2,6 +2,7 @@ import type { Service } from '../types/service';
 
 const SLOT_START_HOUR = 8;
 const SLOT_END_HOUR = 22;
+const TOTAL_SLOTS = 28;
 
 export function generateTimeSlots(): string[] {
   const slots: string[] = [];
@@ -49,16 +50,9 @@ export function getDayStatus(service: Service, date: Date): DayStatus {
 
   if (d < today) return 'past';
 
-  const dayKey = toLocalDateKey(date);
-  const count =
-    (service.reservas ?? []).filter(
-      (r) => r.fechaReservaCliente && toLocalDateKey(new Date(r.fechaReservaCliente)) === dayKey,
-    ).length +
-    (service.visitas ?? []).filter(
-      (v) => v.fechaHoraSolicitada && toLocalDateKey(new Date(v.fechaHoraSolicitada)) === dayKey,
-    ).length;
+  const count = getBookedSlotsForDay(service, date).size;
 
-  if (count >= generateTimeSlots().length) return 'full';
+  if (count >= TOTAL_SLOTS) return 'full';
   if (count <= 2) return 'green';
   if (count <= 5) return 'yellow';
   return 'red';
