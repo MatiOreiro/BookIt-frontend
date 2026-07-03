@@ -133,6 +133,15 @@ export interface VendorDto {
   profileImageUrl?: string | null;
 }
 
+export interface ServicioAsociadoDto {
+  id: string;
+  nombre: string;
+  tipoServicio: string;
+  precioMinimo: number;
+  precioMaximo: number;
+  descripcion: string;
+}
+
 export interface Service {
   id: string;
   vendorId: string;
@@ -152,6 +161,7 @@ export interface Service {
   visitas?: VisitDto[];
   imagenes?: string[];
   direccion?: DireccionDto | null;
+  serviciosAsociados?: ServicioAsociadoDto[];
 }
 
 export interface ServiceFilters {

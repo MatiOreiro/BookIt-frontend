@@ -11,6 +11,7 @@ import type {
   ReservationUserDto,
   Service,
   ServiceFilters,
+  ServicioAsociadoDto,
   VisitDto,
 } from '../types/service';
 
@@ -194,6 +195,18 @@ const normalizeAddress = (raw: unknown): Service['direccion'] => {
   };
 };
 
+const normalizeServicioAsociado = (raw: unknown): ServicioAsociadoDto => {
+  const item = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: pickString(item.id ?? item.Id),
+    nombre: pickString(item.nombre ?? item.Nombre),
+    tipoServicio: pickString(item.tipoServicio ?? item.TipoServicio),
+    precioMinimo: pickNumber(item.precioMinimo ?? item.PrecioMinimo),
+    precioMaximo: pickNumber(item.precioMaximo ?? item.PrecioMaximo),
+    descripcion: pickString(item.descripcion ?? item.Descripcion),
+  };
+};
+
 const normalizeService = (raw: unknown): Service => {
   const item = (raw ?? {}) as Record<string, unknown>;
   const direccionRaw = (item.direccion ?? item.Direccion ?? null) as Record<string, unknown> | null;
@@ -227,6 +240,7 @@ const normalizeService = (raw: unknown): Service => {
     visitas: normalizedVisits,
     imagenes: imagenesRaw.map((image) => pickString(image)).filter(Boolean),
     direccion: normalizeAddress(direccionRaw),
+    serviciosAsociados: getArray(item.serviciosAsociados ?? item.ServiciosAsociados).map(normalizeServicioAsociado),
   };
 };
 
@@ -348,4 +362,19 @@ export const getMyVisitas = async (): Promise<VisitDto[]> => {
   const response = await apiClient.get<unknown>('/visitas/mis-visitas');
   const items = Array.isArray(response.data) ? response.data : [];
   return items.map(normalizeVisit);
+};
+
+export const getServicesByVendorId = async (vendorId: string): Promise<Service[]> => {
+  const response = await apiClient.get<unknown>(`/services/vendor/${vendorId}`);
+  const items = Array.isArray(response.data) ? response.data : [];
+  return items.map(normalizeService);
+};
+
+export const asociarServicio = async (salonId: string, serviceId: string): Promise<ServicioAsociadoDto> => {
+  const response = await apiClient.post<unknown>(`/services/${salonId}/servicios-asociados`, { serviceId });
+  return normalizeServicioAsociado(response.data);
+};
+
+export const quitarServicioAsociado = async (salonId: string, serviceId: string): Promise<void> => {
+  await apiClient.delete(`/services/${salonId}/servicios-asociados/${serviceId}`);
 };
