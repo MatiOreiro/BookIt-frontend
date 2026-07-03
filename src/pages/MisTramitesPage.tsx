@@ -80,6 +80,15 @@ const MisTramitesPage = () => {
   const [activeTab, setActiveTab] = useState<TabId>('todo');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [priceChoice, setPriceChoice] = useState<Record<string, 'min' | 'max'>>({});
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsCalculatorOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -198,86 +207,116 @@ const MisTramitesPage = () => {
             )}
 
             {reservas.length > 0 && (
-              <section className="mis-tramites__calculator">
-                <h2 className="calculator__title">Calculadora de presupuesto</h2>
-                <p className="calculator__subtitle">
-                  Seleccioná las reservas que querés incluir y elegí el rango de precio para las pendientes.
-                </p>
-                <div className="calculator__table-wrapper">
-                  <table className="calculator__table">
-                    <thead>
-                      <tr>
-                        <th></th>
-                        <th>Servicio</th>
-                        <th>Monto</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reservas.map(r => (
-                        <tr
-                          key={r.id}
-                          className={selectedIds.has(r.id) ? 'calculator__row--selected' : ''}
-                        >
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.has(r.id)}
-                              onChange={() => toggleSelected(r.id)}
-                              aria-label={`Incluir ${r.serviceNombre ?? 'reserva'}`}
-                            />
-                          </td>
-                          <td className="calculator__service-cell">
-                            <span className="calculator__service-name">
-                              {r.serviceNombre ?? 'Servicio'}
-                            </span>
-                            <span className="calculator__service-date">
-                              {dateFmtShort.format(new Date(r.fechaReservaCliente))}
-                            </span>
-                          </td>
-                          <td className="calculator__amount-cell">
-                            {r.confirmada && r.montoAcordado != null ? (
-                              <span className="calculator__fixed-amount">
-                                $ {moneyFmt.format(r.montoAcordado)}
-                              </span>
-                            ) : (
-                              <div className="calculator__radio-group">
-                                <label className="calculator__radio-label">
-                                  <input
-                                    type="radio"
-                                    name={`price-${r.id}`}
-                                    value="min"
-                                    checked={(priceChoice[r.id] ?? 'min') === 'min'}
-                                    onChange={() =>
-                                      setPriceChoice(prev => ({ ...prev, [r.id]: 'min' }))
-                                    }
-                                  />
-                                  Mín $ {moneyFmt.format(r.precioMinimo ?? 0)}
-                                </label>
-                                <label className="calculator__radio-label">
-                                  <input
-                                    type="radio"
-                                    name={`price-${r.id}`}
-                                    value="max"
-                                    checked={(priceChoice[r.id] ?? 'min') === 'max'}
-                                    onChange={() =>
-                                      setPriceChoice(prev => ({ ...prev, [r.id]: 'max' }))
-                                    }
-                                  />
-                                  Máx $ {moneyFmt.format(r.precioMaximo ?? 0)}
-                                </label>
-                              </div>
-                            )}
-                          </td>
+              <div className="mis-tramites__calculator-trigger">
+                <button
+                  type="button"
+                  className="mis-tramites__calculator-btn"
+                  onClick={() => setIsCalculatorOpen(true)}
+                >
+                  🧮 Calculadora de presupuesto
+                </button>
+              </div>
+            )}
+
+            {isCalculatorOpen && (
+              <div className="calculator-modal">
+                <button
+                  type="button"
+                  className="calculator-modal__backdrop"
+                  aria-label="Cerrar calculadora"
+                  onClick={() => setIsCalculatorOpen(false)}
+                />
+                <dialog open className="calculator-modal__box" aria-label="Calculadora de presupuesto">
+                  <div className="calculator-modal__header">
+                    <h2 className="calculator__title">Calculadora de presupuesto</h2>
+                    <button
+                      type="button"
+                      className="calculator-modal__close"
+                      onClick={() => setIsCalculatorOpen(false)}
+                      aria-label="Cerrar calculadora"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="calculator__subtitle">
+                    Seleccioná las reservas que querés incluir y elegí el rango de precio para las pendientes.
+                  </p>
+                  <div className="calculator__table-wrapper">
+                    <table className="calculator__table">
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Servicio</th>
+                          <th>Monto</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="calculator__total">
-                  <span>Total estimado</span>
-                  <span className="calculator__total-amount">$ {moneyFmt.format(total)}</span>
-                </div>
-              </section>
+                      </thead>
+                      <tbody>
+                        {reservas.map(r => (
+                          <tr
+                            key={r.id}
+                            className={selectedIds.has(r.id) ? 'calculator__row--selected' : ''}
+                          >
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(r.id)}
+                                onChange={() => toggleSelected(r.id)}
+                                aria-label={`Incluir ${r.serviceNombre ?? 'reserva'}`}
+                              />
+                            </td>
+                            <td className="calculator__service-cell">
+                              <span className="calculator__service-name">
+                                {r.serviceNombre ?? 'Servicio'}
+                              </span>
+                              <span className="calculator__service-date">
+                                {dateFmtShort.format(new Date(r.fechaReservaCliente))}
+                              </span>
+                            </td>
+                            <td className="calculator__amount-cell">
+                              {r.confirmada && r.montoAcordado != null ? (
+                                <span className="calculator__fixed-amount">
+                                  $ {moneyFmt.format(r.montoAcordado)}
+                                </span>
+                              ) : (
+                                <div className="calculator__radio-group">
+                                  <label className="calculator__radio-label">
+                                    <input
+                                      type="radio"
+                                      name={`price-${r.id}`}
+                                      value="min"
+                                      checked={(priceChoice[r.id] ?? 'min') === 'min'}
+                                      onChange={() =>
+                                        setPriceChoice(prev => ({ ...prev, [r.id]: 'min' }))
+                                      }
+                                    />
+                                    Mín $ {moneyFmt.format(r.precioMinimo ?? 0)}
+                                  </label>
+                                  <label className="calculator__radio-label">
+                                    <input
+                                      type="radio"
+                                      name={`price-${r.id}`}
+                                      value="max"
+                                      checked={(priceChoice[r.id] ?? 'min') === 'max'}
+                                      onChange={() =>
+                                        setPriceChoice(prev => ({ ...prev, [r.id]: 'max' }))
+                                      }
+                                    />
+                                    Máx $ {moneyFmt.format(r.precioMaximo ?? 0)}
+                                  </label>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="calculator__total">
+                    <span>Total estimado</span>
+                    <span className="calculator__total-amount">$ {moneyFmt.format(total)}</span>
+                  </div>
+                </dialog>
+              </div>
             )}
           </>
         )}
