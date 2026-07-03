@@ -14,6 +14,11 @@ export interface RegisterServiceRequest {
   TagIds?: string[];
   Capacidad?: number;
   Images?: string[];
+  DiasAtencion?: number[];
+  HoraAperturaReserva?: number;
+  HoraCierreReserva?: number;
+  HoraAperturaVisita?: number;
+  HoraCierreVisita?: number;
 }
 
 export interface CreateVisitaRequest {
@@ -162,6 +167,11 @@ export interface Service {
   imagenes?: string[];
   direccion?: DireccionDto | null;
   serviciosAsociados?: ServicioAsociadoDto[];
+  diasAtencion?: number[] | null;
+  horaAperturaReserva?: number | null;
+  horaCierreReserva?: number | null;
+  horaAperturaVisita?: number | null;
+  horaCierreVisita?: number | null;
 }
 
 export interface ServiceFilters {

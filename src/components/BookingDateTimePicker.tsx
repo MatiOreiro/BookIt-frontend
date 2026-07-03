@@ -2,17 +2,31 @@ import { useState, useMemo } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { es } from 'date-fns/locale';
 import type { Service } from '../types/service';
-import { generateTimeSlots, getBookedSlotsForDay, getDayStatus } from '../utils/bookingAvailability';
+import type { BookingType } from '../utils/bookingAvailability';
+import {
+  generateTimeSlots,
+  getBookedSlotsForDay,
+  getDayStatus,
+  getScheduleHours,
+  isWorkingDay,
+} from '../utils/bookingAvailability';
 import 'react-day-picker/dist/style.css';
 
 interface BookingDateTimePickerProps {
   service: Service;
+  bookingType: BookingType;
   value: Date | null;
   onChange: (date: Date | null) => void;
   disabled?: boolean;
 }
 
-const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: BookingDateTimePickerProps) => {
+const BookingDateTimePicker = ({
+  service,
+  bookingType,
+  value,
+  onChange,
+  disabled = false,
+}: BookingDateTimePickerProps) => {
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(() =>
     value ? new Date(value.getFullYear(), value.getMonth(), value.getDate()) : undefined,
   );
@@ -23,7 +37,15 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
     return d;
   }, []);
 
-  const slots = useMemo(() => generateTimeSlots(), []);
+  const { startHour, endHour } = useMemo(
+    () => getScheduleHours(service, bookingType),
+    [service, bookingType],
+  );
+
+  const slots = useMemo(
+    () => generateTimeSlots(startHour, endHour),
+    [startHour, endHour],
+  );
 
   const bookedSlots = useMemo(
     () => (selectedDay ? getBookedSlotsForDay(service, selectedDay) : new Set<string>()),
@@ -68,19 +90,23 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
   const disabledMatchers = useMemo(
     () => [
       { before: today },
-      (date: Date) => disabled || getDayStatus(service, date) === 'full',
+      (date: Date) =>
+        disabled ||
+        !isWorkingDay(service, date) ||
+        getDayStatus(service, date, bookingType) === 'full',
     ],
-    [today, disabled, service],
+    [today, disabled, service, bookingType],
   );
 
   const modifiers = useMemo(
     () => ({
-      green: (date: Date) => getDayStatus(service, date) === 'green',
-      yellow: (date: Date) => getDayStatus(service, date) === 'yellow',
-      red: (date: Date) => getDayStatus(service, date) === 'red',
-      full: (date: Date) => getDayStatus(service, date) === 'full',
+      green: (date: Date) => getDayStatus(service, date, bookingType) === 'green',
+      yellow: (date: Date) => getDayStatus(service, date, bookingType) === 'yellow',
+      red: (date: Date) => getDayStatus(service, date, bookingType) === 'red',
+      full: (date: Date) => getDayStatus(service, date, bookingType) === 'full',
+      closed: (date: Date) => !isWorkingDay(service, date),
     }),
-    [service],
+    [service, bookingType],
   );
 
   return (
@@ -97,6 +123,7 @@ const BookingDateTimePicker = ({ service, value, onChange, disabled = false }: B
           yellow: 'booking-day--yellow',
           red: 'booking-day--red',
           full: 'booking-day--full',
+          closed: 'booking-day--closed',
         }}
       />
 

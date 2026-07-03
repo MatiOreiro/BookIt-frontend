@@ -134,6 +134,7 @@ const ServiceReservationPage = () => {
             {service && (
               <BookingDateTimePicker
                 service={service}
+                bookingType={isReservation ? 'reserva' : 'visita'}
                 value={fechaHoraSolicitada}
                 onChange={setFechaHoraSolicitada}
                 disabled={submitting}

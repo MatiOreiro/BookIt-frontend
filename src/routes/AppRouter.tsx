@@ -19,6 +19,18 @@ import { setNavigate } from '../utils/navigation';
 
 const currencyFormatter = new Intl.NumberFormat('es-UY');
 
+const DIAS_NOMBRES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 0];
+
+const formatDias = (dias: number[] | null | undefined): string => {
+  if (!dias || dias.length === 0 || dias.length === 7) return 'Todos los días';
+  const sorted = [...dias].sort((a, b) => DIAS_ORDEN.indexOf(a) - DIAS_ORDEN.indexOf(b));
+  return sorted.map((d) => DIAS_NOMBRES[d]).join(', ');
+};
+
+const formatHora = (hora: number | null | undefined, fallback: number): string =>
+  `${String(hora ?? fallback).padStart(2, '0')}:00`;
+
 const buildWhatsAppUrl = (phone?: string) => {
   const digits = (phone ?? '').replace(/\D/g, '');
   return digits ? `https://wa.me/${digits}` : null;
@@ -145,6 +157,19 @@ const ServiceDetailPage = () => {
                     <strong className="service-detail__vendor-name">{service.vendor.nombre}</strong>
                   </div>
                 )}
+
+                <div className="service-detail__schedule">
+                  <span className="service-detail__schedule-label">Días de atención</span>
+                  <span className="service-detail__schedule-value">{formatDias(service.diasAtencion)}</span>
+                  <span className="service-detail__schedule-label">Horario reservas</span>
+                  <span className="service-detail__schedule-value">
+                    {formatHora(service.horaAperturaReserva, 8)} – {formatHora(service.horaCierreReserva, 22)}
+                  </span>
+                  <span className="service-detail__schedule-label">Horario visitas</span>
+                  <span className="service-detail__schedule-value">
+                    {formatHora(service.horaAperturaVisita, 8)} – {formatHora(service.horaCierreVisita, 22)}
+                  </span>
+                </div>
 
                 <div className="service-detail__contact-list">
                   {service.vendor?.telefono && (
