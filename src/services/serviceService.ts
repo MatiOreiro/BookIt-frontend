@@ -24,6 +24,12 @@ const pickNumber = (value: unknown): number =>
 const pickNullableNumber = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
+const pickNullableIntArray = (value: unknown): number[] | null => {
+  if (!Array.isArray(value)) return null;
+  const nums = (value as unknown[]).filter((v): v is number => typeof v === 'number');
+  return nums.length > 0 ? nums : null;
+};
+
 const getArray = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : [];
 
@@ -241,6 +247,11 @@ const normalizeService = (raw: unknown): Service => {
     imagenes: imagenesRaw.map((image) => pickString(image)).filter(Boolean),
     direccion: normalizeAddress(direccionRaw),
     serviciosAsociados: getArray(item.serviciosAsociados ?? item.ServiciosAsociados).map(normalizeServicioAsociado),
+    diasAtencion: pickNullableIntArray(item.diasAtencion ?? item.DiasAtencion),
+    horaAperturaReserva: pickNullableNumber(item.horaAperturaReserva ?? item.HoraAperturaReserva),
+    horaCierreReserva: pickNullableNumber(item.horaCierreReserva ?? item.HoraCierreReserva),
+    horaAperturaVisita: pickNullableNumber(item.horaAperturaVisita ?? item.HoraAperturaVisita),
+    horaCierreVisita: pickNullableNumber(item.horaCierreVisita ?? item.HoraCierreVisita),
   };
 };
 
