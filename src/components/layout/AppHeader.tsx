@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import useAuth from '../../hooks/useAuth';
 import { getServices } from '../../services/serviceService';
 import UserAvatarMenu from './UserAvatarMenu';
 
 const AppHeader = () => {
   const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
   const isVendor = user?.role === 'vendedor' || user?.role === 'vendor' || user?.role === 'salon';
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Sesión cerrada. ¡Hasta pronto!');
+    navigate('/');
+  };
   const [hasService, setHasService] = useState(false);
 
   useEffect(() => {
@@ -62,7 +70,7 @@ const AppHeader = () => {
                   Panel Dueño
                 </NavLink>
               )}
-              <UserAvatarMenu user={user!} logout={logout} />
+              <UserAvatarMenu user={user!} logout={handleLogout} />
             </>
           ) : (
             <>

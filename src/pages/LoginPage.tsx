@@ -1,5 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import useAuth from '../hooks/useAuth';
 import { login } from '../services/authService';
 import axios from 'axios';
@@ -26,6 +27,7 @@ const LoginPage = () => {
     try {
       const data = await login({ email, password });
       setAuthData(data.token, data.user);
+      toast.success(`Bienvenido/a, ${data.user.name}!`);
       navigate(isVendorRole(data.user.role) ? '/vendor/dashboard' : '/');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
