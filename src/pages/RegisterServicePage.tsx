@@ -36,6 +36,11 @@ const RegisterServicePage = () => {
   const [departamentosError, setDepartamentosError] = useState<string | null>(null);
   const [barriosError, setBarriosError] = useState<string | null>(null);
   const [capacidad, setCapacidad] = useState('');
+  const [diasAtencion, setDiasAtencion] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [horaAperturaReserva, setHoraAperturaReserva] = useState('8');
+  const [horaCierreReserva, setHoraCierreReserva] = useState('22');
+  const [horaAperturaVisita, setHoraAperturaVisita] = useState('8');
+  const [horaCierreVisita, setHoraCierreVisita] = useState('22');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,6 +153,11 @@ const RegisterServicePage = () => {
         setPrecioMaximo(String(loadedService.precioMaximo ?? ''));
         setCapacidad(loadedService.capacidad ? String(loadedService.capacidad) : '');
         setSelectedCategoryIds(loadedService.categorias?.map((category) => category.id) ?? []);
+        setDiasAtencion(loadedService.diasAtencion ?? [0, 1, 2, 3, 4, 5, 6]);
+        setHoraAperturaReserva(String(loadedService.horaAperturaReserva ?? 8));
+        setHoraCierreReserva(String(loadedService.horaCierreReserva ?? 22));
+        setHoraAperturaVisita(String(loadedService.horaAperturaVisita ?? 8));
+        setHoraCierreVisita(String(loadedService.horaCierreVisita ?? 22));
 
         const departamentoFromService = loadedService.direccion?.barrio?.departamentoId ?? loadedService.direccion?.departamento?.id ?? '';
         const barrioFromService = loadedService.direccion?.barrio?.id ?? '';
@@ -231,6 +241,11 @@ const RegisterServicePage = () => {
       TagIds: selectedTagId ? [selectedTagId] : undefined,
       ...(capacidad && { Capacidad: Number.parseInt(capacidad) }),
       Images: serviceImageUrls,
+      DiasAtencion: diasAtencion,
+      HoraAperturaReserva: Number(horaAperturaReserva),
+      HoraCierreReserva: Number(horaCierreReserva),
+      HoraAperturaVisita: Number(horaAperturaVisita),
+      HoraCierreVisita: Number(horaCierreVisita),
     };
   };
 
@@ -297,6 +312,12 @@ const RegisterServicePage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const toggleDia = (value: number) => {
+    setDiasAtencion((prev) =>
+      prev.includes(value) ? prev.filter((d) => d !== value) : [...prev, value],
+    );
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -567,6 +588,102 @@ const RegisterServicePage = () => {
                 : 'Solo es obligatorio cuando registrás un salón.'}
             </span>
           </div>
+
+          <fieldset className="form-group form-group--fieldset">
+            <legend className="form-group__legend">Días de atención</legend>
+            <span className="form-group__hint">Seleccioná los días en que aceptás reservas y visitas.</span>
+            <div className="schedule-days">
+              {[
+                { value: 1, label: 'Lun' },
+                { value: 2, label: 'Mar' },
+                { value: 3, label: 'Mié' },
+                { value: 4, label: 'Jue' },
+                { value: 5, label: 'Vie' },
+                { value: 6, label: 'Sáb' },
+                { value: 0, label: 'Dom' },
+              ].map(({ value, label }) => {
+                const checked = diasAtencion.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`schedule-day-btn${checked ? ' is-selected' : ''}`}
+                    onClick={() => toggleDia(value)}
+                    disabled={isLoading}
+                    aria-pressed={checked}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <fieldset className="form-group form-group--fieldset">
+            <legend className="form-group__legend">Horario de reservas</legend>
+            <div className="schedule-hours">
+              <div className="schedule-hours__field">
+                <label htmlFor="horaAperturaReserva">Desde</label>
+                <select
+                  id="horaAperturaReserva"
+                  value={horaAperturaReserva}
+                  onChange={(e) => setHoraAperturaReserva(e.target.value)}
+                  disabled={isLoading}
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
+              </div>
+              <span className="schedule-hours__sep">—</span>
+              <div className="schedule-hours__field">
+                <label htmlFor="horaCierreReserva">Hasta</label>
+                <select
+                  id="horaCierreReserva"
+                  value={horaCierreReserva}
+                  onChange={(e) => setHoraCierreReserva(e.target.value)}
+                  disabled={isLoading}
+                >
+                  {Array.from({ length: 24 }, (_, i) => i + 1).map((i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="form-group form-group--fieldset">
+            <legend className="form-group__legend">Horario de visitas</legend>
+            <div className="schedule-hours">
+              <div className="schedule-hours__field">
+                <label htmlFor="horaAperturaVisita">Desde</label>
+                <select
+                  id="horaAperturaVisita"
+                  value={horaAperturaVisita}
+                  onChange={(e) => setHoraAperturaVisita(e.target.value)}
+                  disabled={isLoading}
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
+              </div>
+              <span className="schedule-hours__sep">—</span>
+              <div className="schedule-hours__field">
+                <label htmlFor="horaCierreVisita">Hasta</label>
+                <select
+                  id="horaCierreVisita"
+                  value={horaCierreVisita}
+                  onChange={(e) => setHoraCierreVisita(e.target.value)}
+                  disabled={isLoading}
+                >
+                  {Array.from({ length: 24 }, (_, i) => i + 1).map((i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </fieldset>
 
           <CloudinaryImagePicker
             label="Imágenes del servicio"
