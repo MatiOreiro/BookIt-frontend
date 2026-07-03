@@ -213,7 +213,7 @@ const MisTramitesPage = () => {
                   className="mis-tramites__calculator-btn"
                   onClick={() => setIsCalculatorOpen(true)}
                 >
-                  🧮 Calculadora de presupuesto
+                  Calculadora de presupuesto
                 </button>
               </div>
             )}

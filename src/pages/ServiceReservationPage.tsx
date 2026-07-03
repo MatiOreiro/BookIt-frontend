@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { createReserva, createVisita, getServiceById } from '../services/serviceService';
 import type { Service } from '../types/service';
 import BookingDateTimePicker from '../components/BookingDateTimePicker';
@@ -23,16 +24,15 @@ const ServiceReservationPage = () => {
 
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fechaHoraSolicitada, setFechaHoraSolicitada] = useState<Date | null>(null);
   const [mensaje, setMensaje] = useState('');
 
   useEffect(() => {
     const loadService = async () => {
       if (!id) {
-        setError('No se encontró el servicio solicitado.');
+        setLoadError('No se encontró el servicio solicitado.');
         setLoading(false);
         return;
       }
@@ -41,7 +41,7 @@ const ServiceReservationPage = () => {
         const foundService = await getServiceById(id);
         setService(foundService);
       } catch {
-        setError('No se pudo cargar el servicio.');
+        setLoadError('No se pudo cargar el servicio.');
       } finally {
         setLoading(false);
       }
@@ -61,8 +61,6 @@ const ServiceReservationPage = () => {
     if (!id || !service || !fechaHoraSolicitada) return;
 
     setSubmitting(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const payload = {
@@ -82,13 +80,11 @@ const ServiceReservationPage = () => {
         });
       }
 
-      setSuccess(successMessage);
-      setMensaje('');
-      setFechaHoraSolicitada(null);
+      toast.success(successMessage);
+      navigate(`/services/${id}`);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'No se pudo crear la reserva.';
-      setError(message);
-    } finally {
+      toast.error(message);
       setSubmitting(false);
     }
   };
@@ -104,12 +100,12 @@ const ServiceReservationPage = () => {
     );
   }
 
-  if (error && !service) {
+  if (loadError) {
     return (
       <div className="auth-container">
         <div className="auth-card auth-card--wide">
           <h1>Reservas</h1>
-          <div className="auth-error">{error}</div>
+          <div className="auth-error">{loadError}</div>
           <Link className="btn-primary" to="/services">
             Volver al listado
           </Link>
@@ -126,9 +122,6 @@ const ServiceReservationPage = () => {
           {reservationSummary ||
             (isReservation ? 'Solicitá una reserva para este servicio.' : 'Solicitá una visita para este servicio.')}
         </p>
-
-        {error && <div className="auth-error">{error}</div>}
-        {success && <div className="auth-success">{success}</div>}
 
         <div className="service-detail__reservation-summary">
           <strong>{service?.nombre}</strong>

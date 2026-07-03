@@ -40,44 +40,31 @@ const ServiceDetailPage = () => {
   const listPath = isServicesRoute ? '/services' : '/lounges';
   const serviceFromState = (location.state as { service?: Service } | null | undefined)?.service;
   const [service, setService] = useState<Service | null>(serviceFromState ?? null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!serviceFromState);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!id) {
+      setError('No se encontró el servicio solicitado.');
+      setLoading(false);
+      return;
+    }
+
     const fetchService = async () => {
-      if (serviceFromState) {
-        setService(serviceFromState);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      if (!id) {
-        setError('No se encontró el servicio solicitado.');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
       try {
         const foundService = await getServiceById(id);
-
-        if (!foundService) {
-          setError('No se encontró el servicio solicitado.');
-        }
-
         setService(foundService);
       } catch {
-        setError('No se pudo cargar el detalle del servicio.');
+        if (!serviceFromState) {
+          setError('No se pudo cargar el detalle del servicio.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchService();
-  }, [id, serviceFromState]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mapUrl = useMemo(() => buildMapUrl(service ?? undefined), [service]);
   const whatsappUrl = useMemo(
@@ -219,18 +206,22 @@ const ServiceDetailPage = () => {
                     <h2>Servicios disponibles en este salón</h2>
                     <div className="service-detail__asociados-grid">
                       {service.serviciosAsociados.map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          className="service-detail__asociado-card"
-                          onClick={() => navigate(`/services/${s.id}`)}
-                        >
+                        <div key={s.id} className="service-detail__asociado-card">
                           <span className="service-detail__asociado-tipo">{s.tipoServicio}</span>
-                          <strong className="service-detail__asociado-nombre">{s.nombre}</strong>
+                          <button
+                            type="button"
+                            className="service-detail__asociado-nombre"
+                            onClick={() => navigate(`/services/${s.id}`)}
+                          >
+                            {s.nombre}
+                          </button>
+                          {s.descripcion && (
+                            <p className="service-detail__asociado-desc">{s.descripcion}</p>
+                          )}
                           <span className="service-detail__asociado-precio">
                             Desde $ {currencyFormatter.format(s.precioMinimo)}
                           </span>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -295,10 +286,19 @@ const NavigationRegistrar = () => {
   return null;
 };
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
 const AppRouter = () => {
   return (
     <BrowserRouter>
       <NavigationRegistrar />
+      <ScrollToTop />
       <Routes>
         <Route element={<Layout />}>
           {/* Public routes */}
