@@ -2635,6 +2635,78 @@ a {
   line-height: 1.7;
 }
 
+.service-detail__asociados-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.service-detail__asociado-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.service-detail__asociado-tipo {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.service-detail__asociado-nombre {
+  margin: 0.1rem 0 0;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.service-detail__asociado-nombre:hover {
+  color: var(--primary-strong);
+}
+
+.service-detail__asociado-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.service-detail__asociado-precio {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  border-top: 1px solid var(--border);
+}
+
 .service-detail__section-header p {
   margin: 0;
   color: var(--text-muted);
@@ -3127,4 +3199,113 @@ a {
 .calculator-modal__close:hover {
   background: var(--primary-soft);
   color: var(--primary);
+}
+
+/* ====== BookingDateTimePicker ====== */
+
+.booking-picker {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* Override react-day-picker accent colors */
+.booking-picker .rdp {
+  --rdp-accent-color: var(--primary);
+  --rdp-background-color: var(--primary-soft);
+  margin: 0;
+  font-family: inherit;
+}
+
+/* Day availability color indicators */
+.booking-picker .rdp-day.booking-day--green {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.booking-picker .rdp-day.booking-day--yellow {
+  background: rgba(234, 179, 8, 0.15);
+  color: #92400e;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.booking-picker .rdp-day.booking-day--red {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.booking-picker .rdp-day.booking-day--full {
+  background: rgba(107, 114, 128, 0.08);
+  color: #9ca3af;
+  border-radius: 50%;
+}
+
+/* Time slot section */
+.booking-picker__slots {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.booking-picker__slots-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.booking-picker__slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.booking-picker__slot {
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  text-align: center;
+}
+
+.booking-picker__slot:hover:not(:disabled) {
+  border-color: rgba(122, 44, 255, 0.35);
+  background: rgba(122, 44, 255, 0.06);
+  box-shadow: 0 4px 12px rgba(122, 44, 255, 0.1);
+}
+
+.booking-picker__slot--selected {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #9a43ff);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(122, 44, 255, 0.22);
+}
+
+.booking-picker__slot--selected:hover:not(:disabled) {
+  border-color: var(--primary-strong);
+  background: linear-gradient(135deg, var(--primary-strong), #8632f4);
+}
+
+.booking-picker__slot--booked,
+.booking-picker__slot--past {
+  background: rgba(107, 114, 128, 0.07);
+  color: #9ca3af;
+  border-color: rgba(107, 114, 128, 0.15);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+@media (max-width: 480px) {
+  .booking-picker__slots-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }

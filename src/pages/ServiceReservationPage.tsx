@@ -2,14 +2,7 @@ import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createReserva, createVisita, getServiceById } from '../services/serviceService';
 import type { Service } from '../types/service';
-
-const buildDefaultDateTime = () => {
-  const now = new Date();
-  const nextSlot = new Date(now);
-  const minutesToAdd = now.getMinutes() < 30 ? 30 - now.getMinutes() : 60 - now.getMinutes();
-  nextSlot.setMinutes(now.getMinutes() + minutesToAdd, 0, 0);
-  return nextSlot.toISOString().slice(0, 16);
-};
+import BookingDateTimePicker from '../components/BookingDateTimePicker';
 
 const moneyFormatter = new Intl.NumberFormat('es-UY');
 
@@ -27,12 +20,13 @@ const ServiceReservationPage = () => {
   const formHint = isReservation
     ? 'La reserva se registrará como reserva pendiente.'
     : 'La visita se registrará como visita pendiente.';
+
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [fechaHoraSolicitada, setFechaHoraSolicitada] = useState(buildDefaultDateTime());
+  const [fechaHoraSolicitada, setFechaHoraSolicitada] = useState<Date | null>(null);
   const [mensaje, setMensaje] = useState('');
 
   useEffect(() => {
@@ -57,19 +51,14 @@ const ServiceReservationPage = () => {
   }, [id]);
 
   const reservationSummary = useMemo(() => {
-    if (!service) {
-      return '';
-    }
-
+    if (!service) return '';
     return `${service.nombre} - desde $ ${moneyFormatter.format(service.precioMinimo)}`;
   }, [service]);
 
   const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!id || !service) {
-      return;
-    }
+    if (!id || !service || !fechaHoraSolicitada) return;
 
     setSubmitting(true);
     setError(null);
@@ -84,18 +73,18 @@ const ServiceReservationPage = () => {
       if (isReservation) {
         await createReserva({
           ...payload,
-          FechaReservaCliente: new Date(fechaHoraSolicitada).toISOString(),
+          FechaReservaCliente: fechaHoraSolicitada.toISOString(),
         });
       } else {
         await createVisita({
           ...payload,
-          FechaHoraSolicitada: new Date(fechaHoraSolicitada).toISOString(),
+          FechaHoraSolicitada: fechaHoraSolicitada.toISOString(),
         });
       }
 
       setSuccess(successMessage);
       setMensaje('');
-      setFechaHoraSolicitada(buildDefaultDateTime());
+      setFechaHoraSolicitada(null);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'No se pudo crear la reserva.';
       setError(message);
@@ -133,7 +122,10 @@ const ServiceReservationPage = () => {
     <div className="auth-container">
       <div className="auth-card auth-card--wide">
         <h1>{pageTitle}</h1>
-        <p>{reservationSummary || (isReservation ? 'Solicitá una reserva para este servicio.' : 'Solicitá una visita para este servicio.')}</p>
+        <p>
+          {reservationSummary ||
+            (isReservation ? 'Solicitá una reserva para este servicio.' : 'Solicitá una visita para este servicio.')}
+        </p>
 
         {error && <div className="auth-error">{error}</div>}
         {success && <div className="auth-success">{success}</div>}
@@ -145,16 +137,15 @@ const ServiceReservationPage = () => {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="fechaHoraSolicitada">Fecha y hora solicitada</label>
-            <input
-              id="fechaHoraSolicitada"
-              type="datetime-local"
-              step="1800"
-              value={fechaHoraSolicitada}
-              onChange={(event) => setFechaHoraSolicitada(event.target.value)}
-              required
-              disabled={submitting}
-            />
+            <label>Fecha y hora solicitada</label>
+            {service && (
+              <BookingDateTimePicker
+                service={service}
+                value={fechaHoraSolicitada}
+                onChange={setFechaHoraSolicitada}
+                disabled={submitting}
+              />
+            )}
           </div>
 
           <div className="form-group">
@@ -163,7 +154,11 @@ const ServiceReservationPage = () => {
               id="mensaje"
               value={mensaje}
               onChange={(event) => setMensaje(event.target.value)}
-              placeholder={isReservation ? 'Contanos brevemente qué necesitás para la reserva.' : 'Contanos brevemente qué necesitás para la visita.'}
+              placeholder={
+                isReservation
+                  ? 'Contanos brevemente qué necesitás para la reserva.'
+                  : 'Contanos brevemente qué necesitás para la visita.'
+              }
               rows={5}
               maxLength={500}
               disabled={submitting}
@@ -172,10 +167,19 @@ const ServiceReservationPage = () => {
           </div>
 
           <div className="service-detail__cta-stack service-detail__cta-stack--form">
-            <button type="submit" className="service-detail__cta service-detail__cta--primary" disabled={submitting}>
+            <button
+              type="submit"
+              className="service-detail__cta service-detail__cta--primary"
+              disabled={submitting || !fechaHoraSolicitada}
+            >
               {submitting ? 'Enviando...' : submitLabel}
             </button>
-            <button type="button" className="service-detail__cta service-detail__cta--secondary" onClick={() => navigate(-1)} disabled={submitting}>
+            <button
+              type="button"
+              className="service-detail__cta service-detail__cta--secondary"
+              onClick={() => navigate(-1)}
+              disabled={submitting}
+            >
               Volver
             </button>
           </div>
