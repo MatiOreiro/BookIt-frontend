@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { createReserva, createVisita, getServiceById } from '../services/serviceService';
 import type { Service } from '../types/service';
 import BookingDateTimePicker from '../components/BookingDateTimePicker';
-import { useToast } from '../context/ToastContext';
 
 const moneyFormatter = new Intl.NumberFormat('es-UY');
 
@@ -11,7 +11,6 @@ const ServiceReservationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { showToast } = useToast();
   const bookingType = new URLSearchParams(location.search).get('tipo') === 'reserva' ? 'reserva' : 'visita';
   const isReservation = bookingType === 'reserva';
   const pageTitle = isReservation ? 'Agendar reserva' : 'Agendar visita';
@@ -81,11 +80,11 @@ const ServiceReservationPage = () => {
         });
       }
 
-      showToast(successMessage, 'success');
+      toast.success(successMessage);
       navigate(`/services/${id}`);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'No se pudo crear la reserva.';
-      showToast(message, 'error');
+      toast.error(message);
       setSubmitting(false);
     }
   };

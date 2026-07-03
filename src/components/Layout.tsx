@@ -1,21 +1,28 @@
 import { Outlet } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import AppFooter from './layout/AppFooter';
 import AppHeader from './layout/AppHeader';
-import { ToastProvider } from '../context/ToastContext';
 
 const Layout = () => {
   return (
-    <ToastProvider>
-      <div className="app-layout">
-        <AppHeader />
+    <div className="app-layout">
+      <AppHeader />
 
-        <main className="app-main">
-          <Outlet />
-        </main>
+      <main className="app-main">
+        <Outlet />
+      </main>
 
-        <AppFooter />
-      </div>
-    </ToastProvider>
+      <AppFooter />
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+      />
+    </div>
   );
 };
 
