@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { CldUploadButton, type CloudinaryUploadWidgetResults } from 'next-cloudinary';
 
 interface CloudinaryImagePickerProps {
@@ -9,16 +10,11 @@ interface CloudinaryImagePickerProps {
   disabled?: boolean;
 }
 
-const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 const extractSecureUrl = (results: CloudinaryUploadWidgetResults): string | null => {
   const info = results.info;
-
-  if (!info || typeof info === 'string') {
-    return null;
-  }
-
+  if (!info || typeof info === 'string') return null;
   return info.secure_url ?? null;
 };
 
@@ -30,19 +26,18 @@ const CloudinaryImagePicker = ({
   multiple = false,
   disabled = false,
 }: CloudinaryImagePickerProps) => {
+  // Ref so onSuccess always sees the latest imageUrls even when multiple
+  // uploads fire before React re-renders (stale closure fix).
+  const imageUrlsRef = useRef(imageUrls);
+  imageUrlsRef.current = imageUrls;
+
   const handleSuccess = (results: CloudinaryUploadWidgetResults) => {
     const uploadedUrl = extractSecureUrl(results);
-
-    if (!uploadedUrl) {
-      return;
-    }
+    if (!uploadedUrl) return;
 
     if (multiple) {
-      if (imageUrls.includes(uploadedUrl)) {
-        return;
-      }
-
-      onImageUrlsChange([...imageUrls, uploadedUrl]);
+      if (imageUrlsRef.current.includes(uploadedUrl)) return;
+      onImageUrlsChange([...imageUrlsRef.current, uploadedUrl]);
       return;
     }
 
@@ -50,10 +45,10 @@ const CloudinaryImagePicker = ({
   };
 
   const handleRemove = (imageUrl: string) => {
-    onImageUrlsChange(imageUrls.filter((currentUrl) => currentUrl !== imageUrl));
+    onImageUrlsChange(imageUrls.filter((url) => url !== imageUrl));
   };
 
-  const hasUploadConfig = Boolean(cloudName && uploadPreset);
+  const hasUploadConfig = Boolean(uploadPreset);
   const canUpload = hasUploadConfig && !disabled;
 
   return (
@@ -65,7 +60,6 @@ const CloudinaryImagePicker = ({
           <CldUploadButton
             className="btn-secondary cloudinary-image-picker__upload"
             uploadPreset={uploadPreset ?? ''}
-            config={cloudName ? { cloudName } : undefined}
             options={{ multiple }}
             onSuccess={handleSuccess}
             disabled={!canUpload}
@@ -73,7 +67,9 @@ const CloudinaryImagePicker = ({
             {multiple ? 'Subir imágenes' : 'Subir imagen'}
           </CldUploadButton>
         ) : (
-          <span className="cloudinary-image-picker__missing-config">Configurá Cloudinary para habilitar la subida.</span>
+          <span className="cloudinary-image-picker__missing-config">
+            Configurá Cloudinary para habilitar la subida.
+          </span>
         )}
       </div>
 
@@ -96,14 +92,16 @@ const CloudinaryImagePicker = ({
           ))}
         </div>
       ) : (
-        <span className="form-group__hint cloudinary-image-picker__empty">Todavía no agregaste imágenes.</span>
+        <span className="form-group__hint cloudinary-image-picker__empty">
+          Todavía no agregaste imágenes.
+        </span>
       )}
 
-      {!hasUploadConfig ? (
+      {!hasUploadConfig && (
         <span className="form-group__hint cloudinary-image-picker__config-warning">
-          Faltan las variables NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME o NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.
+          Falta la variable NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.
         </span>
-      ) : null}
+      )}
     </div>
   );
 };
