@@ -44,6 +44,96 @@ const buildMapUrl = (service?: Service) => {
 const getServiceMainImage = (service?: Service) => service?.imagenes?.[0] ?? null;
 const getServiceGalleryImages = (service?: Service) => service?.imagenes ?? [];
 
+interface ServiceGalleryLightboxProps {
+  images: string[];
+  initialIndex: number;
+  serviceName: string;
+  onClose: () => void;
+}
+
+const ServiceGalleryLightbox = ({ images, initialIndex, serviceName, onClose }: ServiceGalleryLightboxProps) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const hasMultiple = images.length > 1;
+
+  const goToPrevious = () => {
+    setCurrentIndex((current) => (current === 0 ? images.length - 1 : current - 1));
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((current) => (current === images.length - 1 ? 0 : current + 1));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      } else if (event.key === 'ArrowLeft') {
+        setCurrentIndex((current) => (current === 0 ? images.length - 1 : current - 1));
+      } else if (event.key === 'ArrowRight') {
+        setCurrentIndex((current) => (current === images.length - 1 ? 0 : current + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, onClose]);
+
+  return (
+    <div
+      className="service-detail__lightbox-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Galería de ${serviceName}`}
+      onClick={onClose}
+    >
+      <button type="button" className="service-detail__lightbox-close" onClick={onClose} aria-label="Cerrar">
+        ✕
+      </button>
+
+      {hasMultiple && (
+        <button
+          type="button"
+          className="service-detail__lightbox-nav service-detail__lightbox-nav--prev"
+          onClick={(event) => {
+            event.stopPropagation();
+            goToPrevious();
+          }}
+          aria-label="Imagen anterior"
+        >
+          ←
+        </button>
+      )}
+
+      <img
+        src={images[currentIndex]}
+        alt={`${serviceName} ${currentIndex + 1}`}
+        className="service-detail__lightbox-image"
+        onClick={(event) => event.stopPropagation()}
+      />
+
+      {hasMultiple && (
+        <button
+          type="button"
+          className="service-detail__lightbox-nav service-detail__lightbox-nav--next"
+          onClick={(event) => {
+            event.stopPropagation();
+            goToNext();
+          }}
+          aria-label="Imagen siguiente"
+        >
+          →
+        </button>
+      )}
+
+      {hasMultiple && (
+        <span className="service-detail__lightbox-counter">
+          {currentIndex + 1} / {images.length}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const ServiceDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,6 +144,7 @@ const ServiceDetailPage = () => {
   const [service, setService] = useState<Service | null>(serviceFromState ?? null);
   const [loading, setLoading] = useState(!serviceFromState);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -116,7 +207,18 @@ const ServiceDetailPage = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="service-detail__main-image">
+                    <div
+                      className="service-detail__main-image"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setLightboxIndex(0)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setLightboxIndex(0);
+                        }
+                      }}
+                    >
                       <img src={getServiceMainImage(service) ?? undefined} alt={service.nombre} />
                       <div className="service-detail__main-image-overlay">
                         <span className="service-detail__eyebrow">{service.tipoServicio || 'Salón para eventos'}</span>
@@ -129,14 +231,38 @@ const ServiceDetailPage = () => {
                       <div className="service-detail__thumbs" aria-label="Galería del servicio">
                         {getServiceGalleryImages(service)
                           .slice(1, 6)
-                          .map((imageUrl, index) => (
-                            <div key={imageUrl} className={`service-detail__thumb service-detail__thumb--${index + 1}`}>
-                              <img src={imageUrl} alt={`${service.nombre} ${index + 2}`} />
-                            </div>
-                          ))}
+                          .map((imageUrl, sliceIndex) => {
+                            const fullIndex = sliceIndex + 1;
+                            return (
+                              <div
+                                key={imageUrl}
+                                className={`service-detail__thumb service-detail__thumb--${sliceIndex + 1}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setLightboxIndex(fullIndex)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setLightboxIndex(fullIndex);
+                                  }
+                                }}
+                              >
+                                <img src={imageUrl} alt={`${service.nombre} ${sliceIndex + 2}`} />
+                              </div>
+                            );
+                          })}
                       </div>
                     )}
                   </>
+                )}
+
+                {lightboxIndex !== null && (
+                  <ServiceGalleryLightbox
+                    images={getServiceGalleryImages(service)}
+                    initialIndex={lightboxIndex}
+                    serviceName={service.nombre}
+                    onClose={() => setLightboxIndex(null)}
+                  />
                 )}
               </div>
 
