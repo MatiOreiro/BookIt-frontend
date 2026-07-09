@@ -3407,3 +3407,124 @@ a {
   padding-bottom: 0.6rem;
   flex-shrink: 0;
 }
+
+/* Reviews (reseñas) */
+
+.tramite-card__review-cta {
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+
+.tramite-card__review-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.tramite-card__badge--reseñada {
+  background: rgba(120, 87, 167, 0.1);
+  color: var(--primary);
+}
+
+.review-form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.review-form__stars {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.review-form__star {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #eab308;
+  padding: 0;
+}
+
+.review-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.service-reviews {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.service-reviews__header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.service-reviews__avg {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.service-reviews__count {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.service-reviews__list {
+  display: grid;
+  gap: 1rem;
+}
+
+.service-review {
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  padding: 1rem 1.2rem;
+}
+
+.service-review__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.service-review__author {
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.service-review__stars {
+  color: #eab308;
+  letter-spacing: 0.1rem;
+}
+
+.service-review__comment {
+  margin: 0.5rem 0 0;
+  color: var(--text);
+}
+
+.service-review__media {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.service-review__media-item {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.6rem;
+}
+
+.service-reviews__empty {
+  color: var(--text-muted);
+}

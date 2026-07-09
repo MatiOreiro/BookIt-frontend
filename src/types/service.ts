@@ -77,6 +77,27 @@ export interface ConfirmarReservaRequest {
   montoAcordado: number;
 }
 
+export interface ResenaDto {
+  id: string;
+  reservaId: string;
+  serviceId: string;
+  userId: string;
+  puntuacion: number;
+  comentario?: string | null;
+  mediaUrls: string[];
+  fechaCreacion: string;
+  fechaActualizacion: string;
+  usuarioNombre?: string | null;
+  usuarioProfileImageUrl?: string | null;
+}
+
+export interface CreateResenaRequest {
+  reservaId: string;
+  puntuacion: number;
+  comentario?: string;
+  mediaUrls?: string[];
+}
+
 export interface ReservationDto {
   id: string;
   serviceId: string;
@@ -93,6 +114,8 @@ export interface ReservationDto {
   vendorNombre?: string | null;
   vendorEmail?: string | null;
   vendorTelefono?: string | null;
+  realizada?: boolean;
+  resenaId?: string | null;
 }
 
 export interface VisitDto {
@@ -172,6 +195,8 @@ export interface Service {
   horaCierreReserva?: number | null;
   horaAperturaVisita?: number | null;
   horaCierreVisita?: number | null;
+  avgRating?: number | null;
+  reviewCount?: number;
 }
 
 export interface ServiceFilters {

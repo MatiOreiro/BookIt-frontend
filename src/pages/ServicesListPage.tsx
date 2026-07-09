@@ -399,8 +399,8 @@ const ServicesListPage = () => {
                     )}
 
                     <div className="service-card__rating">
-                      <span className="stars">⭐ 4.5</span>
-                      <span className="reviews">(12 reseñas)</span>
+                      <span className="stars">⭐ {service.avgRating != null ? service.avgRating.toFixed(1) : '—'}</span>
+                      <span className="reviews">({service.reviewCount ?? 0} reseñas)</span>
                     </div>
 
                     <div className="service-card__footer">
