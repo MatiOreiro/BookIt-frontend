@@ -212,7 +212,7 @@ const VendorDashboardPage = () => {
       });
     });
 
-    return items.sort((left, right) => (left.date?.getTime() ?? 0) - (right.date?.getTime() ?? 0));
+    return items.sort((left, right) => (left.date?.getTime() ?? Infinity) - (right.date?.getTime() ?? Infinity));
   }, [services]);
 
   const visibleUpcomingItems = useMemo(() => {
@@ -311,11 +311,19 @@ const VendorDashboardPage = () => {
               </div>
             </div>
 
-            {visibleUpcomingItems.length === 0 ? (
+            {loading && (
+              <div className="service-owner-dashboard__empty-state">
+                <p>Cargando actividades...</p>
+              </div>
+            )}
+
+            {!loading && !error && visibleUpcomingItems.length === 0 && (
               <div className="service-owner-dashboard__empty-state">
                 <p>No tenés actividades pendientes ni próximas por ahora.</p>
               </div>
-            ) : (
+            )}
+
+            {!loading && !error && visibleUpcomingItems.length > 0 && (
               <div className="service-owner-dashboard__list vendor-dashboard__upcoming-list">
                 {visibleUpcomingItems.map((item) =>
                   item.kind === 'visita' ? (
