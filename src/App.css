@@ -2481,6 +2481,47 @@ a {
   position: relative;
 }
 
+.cloudinary-image-picker__move-buttons {
+  position: absolute;
+  inset: 0.5rem 0.5rem auto 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  pointer-events: none;
+}
+
+.cloudinary-image-picker__move {
+  pointer-events: auto;
+  border: 0;
+  border-radius: 999px;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.cloudinary-image-picker__move:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.cloudinary-image-picker__move:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cloudinary-image-picker__move--left {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.cloudinary-image-picker__move--right {
+  grid-column: 2;
+  justify-self: end;
+}
+
 .cloudinary-image-picker__remove {
   position: absolute;
   right: 0.5rem;
