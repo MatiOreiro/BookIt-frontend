@@ -2396,6 +2396,14 @@ a {
 
 .service-detail__thumb span {
   position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.5rem 0.65rem;
+  background: linear-gradient(180deg, transparent, rgba(15, 10, 24, 0.82));
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .service-card__image img {
   width: 100%;
   height: 100%;
@@ -2494,13 +2502,6 @@ a {
   color: var(--text-strong);
   font-size: 0.92rem;
   font-weight: 600;
-}
-  inset: auto 0 0 0;
-  padding: 0.5rem 0.65rem;
-  background: linear-gradient(180deg, transparent, rgba(15, 10, 24, 0.82));
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
 }
 
 .service-detail__thumb--1 {
