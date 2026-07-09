@@ -1064,7 +1064,11 @@ a {
 .vendor-dashboard__upcoming-list {
   max-height: 32rem;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  padding: 1rem 1.05rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
 }
 
 .vendor-dashboard__upcoming-card {

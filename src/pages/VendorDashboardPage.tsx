@@ -75,7 +75,7 @@ const UpcomingVisitCard = ({ visit, service, onNavigate }: UpcomingVisitCardProp
 
         <div className="service-owner-dashboard__reservation-contact">
           <span>📝 {visit.mensaje || 'Sin mensaje'}</span>
-          <span>🏷 {service.nombre}</span>
+          <span>🏷 <strong>{service.nombre}</strong></span>
         </div>
       </div>
     </article>
@@ -120,7 +120,7 @@ const UpcomingReservationCard = ({ reservation, service, onNavigate }: UpcomingR
         <div className="service-owner-dashboard__reservation-contact">
           <span>✉️ {reservation.usuario?.email || 'Sin email'}</span>
           <span>📞 {reservation.usuario?.telefono || 'Sin teléfono'}</span>
-          <span>🏷 {service.nombre}</span>
+          <span>🏷 <strong>{service.nombre}</strong></span>
         </div>
       </div>
     </article>
