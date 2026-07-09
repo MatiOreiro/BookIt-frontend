@@ -189,7 +189,7 @@ const VendorDashboardPage = () => {
   }, [services]);
 
   const upcomingItems = useMemo(() => {
-    const now = Date.now();
+    const now = new Date().getTime();
     const items: UpcomingItem[] = [];
 
     services.forEach((service) => {
