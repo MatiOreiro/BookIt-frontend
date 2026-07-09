@@ -1036,6 +1036,47 @@ a {
   color: var(--text-muted);
 }
 
+.vendor-dashboard__upcoming {
+  display: grid;
+  gap: 1rem;
+}
+
+.vendor-dashboard__upcoming-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.vendor-dashboard__upcoming-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.vendor-dashboard__upcoming-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  max-width: 52ch;
+}
+
+.vendor-dashboard__upcoming-list {
+  max-height: 32rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.vendor-dashboard__upcoming-card {
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.vendor-dashboard__upcoming-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(122, 44, 255, 0.1);
+}
+
 .vendor-dashboard__state {
   display: grid;
   gap: 0.75rem;
@@ -1788,9 +1829,14 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .vendor-dashboard__services-header {
+  .vendor-dashboard__services-header,
+  .vendor-dashboard__upcoming-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .vendor-dashboard__upcoming-list {
+    max-height: 24rem;
   }
 
   .vendor-dashboard__create-button {
