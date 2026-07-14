@@ -112,6 +112,8 @@ const normalizeReservation = (raw: unknown): ReservationDto => {
     vendorNombre: pickString(item.vendorNombre ?? item.VendorNombre) || null,
     vendorEmail: pickString(item.vendorEmail ?? item.VendorEmail) || null,
     vendorTelefono: pickString(item.vendorTelefono ?? item.VendorTelefono) || null,
+    realizada: Boolean(item.realizada ?? item.Realizada),
+    resenaId: pickString(item.resenaId ?? item.ResenaId) || null,
   };
 };
 
@@ -252,6 +254,8 @@ const normalizeService = (raw: unknown): Service => {
     horaCierreReserva: pickNullableNumber(item.horaCierreReserva ?? item.HoraCierreReserva),
     horaAperturaVisita: pickNullableNumber(item.horaAperturaVisita ?? item.HoraAperturaVisita),
     horaCierreVisita: pickNullableNumber(item.horaCierreVisita ?? item.HoraCierreVisita),
+    avgRating: pickNullableNumber(item.avgRating ?? item.AvgRating),
+    reviewCount: pickNumber(item.reviewCount ?? item.ReviewCount),
   };
 };
 

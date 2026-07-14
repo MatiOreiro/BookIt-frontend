@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMyReservas, getMyVisitas } from '../services/serviceService';
-import type { ReservationDto, VisitDto } from '../types/service';
+import type { ReservationDto, ResenaDto, VisitDto } from '../types/service';
+import ReviewForm from '../components/ReviewForm';
 
 type TramiteItem =
   | { tipo: 'reserva'; data: ReservationDto; fecha: Date }
@@ -21,8 +22,10 @@ function getPagoBadge(data: ReservationDto): { label: string; cls: string } | nu
 
 const ReservaCard = ({
   data,
+  onOpenReview,
 }: {
   data: ReservationDto;
+  onOpenReview: (reservaId: string) => void;
 }) => {
   const pagoBadge = getPagoBadge(data);
   const estadoLabel = data.confirmada ? 'Confirmada' : 'Pendiente';
@@ -45,6 +48,17 @@ const ReservaCard = ({
           {data.vendorNombre && <span className="tramite-card__vendor-row">👤 {data.vendorNombre}</span>}
           {data.vendorEmail && <span className="tramite-card__vendor-row">✉️ {data.vendorEmail}</span>}
           {data.vendorTelefono && <span className="tramite-card__vendor-row">📞 {data.vendorTelefono}</span>}
+        </div>
+      )}
+      {data.realizada && (
+        <div className="tramite-card__review-cta">
+          {data.resenaId ? (
+            <span className="tramite-card__badge tramite-card__badge--reseñada">Ya reseñaste esta reserva</span>
+          ) : (
+            <button type="button" className="btn-secondary" onClick={() => onOpenReview(data.id)}>
+              Dejar reseña
+            </button>
+          )}
         </div>
       )}
     </article>
@@ -81,10 +95,19 @@ const MisTramitesPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [priceChoice, setPriceChoice] = useState<Record<string, 'min' | 'max'>>({});
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [reviewingReservaId, setReviewingReservaId] = useState<string | null>(null);
+
+  const handleReviewSubmitted = (resena: ResenaDto) => {
+    setReservas(prev => prev.map(r => (r.id === resena.reservaId ? { ...r, resenaId: resena.id } : r)));
+    setReviewingReservaId(null);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsCalculatorOpen(false);
+      if (e.key === 'Escape') {
+        setIsCalculatorOpen(false);
+        setReviewingReservaId(null);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -195,7 +218,7 @@ const MisTramitesPage = () => {
                 {filteredItems.map(item =>
                   item.tipo === 'reserva' ? (
                     <li key={`r-${item.data.id}`}>
-                      <ReservaCard data={item.data} />
+                      <ReservaCard data={item.data} onOpenReview={setReviewingReservaId} />
                     </li>
                   ) : (
                     <li key={`v-${item.data.id}`}>
@@ -317,6 +340,14 @@ const MisTramitesPage = () => {
                   </div>
                 </dialog>
               </div>
+            )}
+
+            {reviewingReservaId && (
+              <ReviewForm
+                reservaId={reviewingReservaId}
+                onClose={() => setReviewingReservaId(null)}
+                onSubmitted={handleReviewSubmitted}
+              />
             )}
           </>
         )}

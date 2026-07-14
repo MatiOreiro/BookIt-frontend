@@ -14,7 +14,8 @@ import HomePage from '../pages/HomePage';
 import ServicesListPage from '../pages/ServicesListPage';
 import MisTramitesPage from '../pages/MisTramitesPage';
 import { getServiceById } from '../services/serviceService';
-import type { Service } from '../types/service';
+import { getResenasByServiceId } from '../services/resenaService';
+import type { ResenaDto, Service } from '../types/service';
 import { setNavigate } from '../utils/navigation';
 
 const currencyFormatter = new Intl.NumberFormat('es-UY');
@@ -44,6 +45,8 @@ const buildMapUrl = (service?: Service) => {
 const getServiceMainImage = (service?: Service) => service?.imagenes?.[0] ?? null;
 const getServiceGalleryImages = (service?: Service) => service?.imagenes ?? [];
 
+const reviewDateFormatter = new Intl.DateTimeFormat('es-UY', { dateStyle: 'long' });
+const isVideoMediaUrl = (url: string) => /\/video\/upload\//.test(url) || /\.(mp4|mov|webm|ogg)$/i.test(url);
 interface ServiceGalleryLightboxProps {
   images: string[];
   initialIndex: number;
@@ -133,7 +136,7 @@ const ServiceGalleryLightbox = ({ images, initialIndex, serviceName, onClose }: 
     </div>
   );
 };
-
+  
 const ServiceDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -144,6 +147,7 @@ const ServiceDetailPage = () => {
   const [service, setService] = useState<Service | null>(serviceFromState ?? null);
   const [loading, setLoading] = useState(!serviceFromState);
   const [error, setError] = useState<string | null>(null);
+  const [resenas, setResenas] = useState<ResenaDto[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -168,6 +172,21 @@ const ServiceDetailPage = () => {
 
     fetchService();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchResenas = async () => {
+      try {
+        const fetchedResenas = await getResenasByServiceId(id);
+        setResenas(fetchedResenas);
+      } catch {
+        setResenas([]);
+      }
+    };
+
+    fetchResenas();
+  }, [id]);
 
   const mapUrl = useMemo(() => buildMapUrl(service ?? undefined), [service]);
   const whatsappUrl = useMemo(
@@ -398,6 +417,44 @@ const ServiceDetailPage = () => {
                       <span className="service-detail__meta-value">{service.activo ? 'Activo' : 'Inactivo'}</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="service-reviews">
+                  <div className="service-reviews__header">
+                    <h2>Reseñas</h2>
+                    <span className="service-reviews__avg">
+                      ⭐ {service.avgRating != null ? service.avgRating.toFixed(1) : '—'}
+                    </span>
+                    <span className="service-reviews__count">({service.reviewCount ?? 0} reseñas)</span>
+                  </div>
+
+                  {resenas.length === 0 ? (
+                    <p className="service-reviews__empty">Todavía no hay reseñas para este servicio.</p>
+                  ) : (
+                    <div className="service-reviews__list">
+                      {resenas.map((resena) => (
+                        <article key={resena.id} className="service-review">
+                          <div className="service-review__header">
+                            <span className="service-review__author">{resena.usuarioNombre || 'Usuario'}</span>
+                            <span className="service-review__stars">{'★'.repeat(resena.puntuacion)}{'☆'.repeat(5 - resena.puntuacion)}</span>
+                          </div>
+                          <p className="tramite-card__date">{reviewDateFormatter.format(new Date(resena.fechaCreacion))}</p>
+                          {resena.comentario && <p className="service-review__comment">{resena.comentario}</p>}
+                          {resena.mediaUrls.length > 0 && (
+                            <div className="service-review__media">
+                              {resena.mediaUrls.map((url) =>
+                                isVideoMediaUrl(url) ? (
+                                  <video key={url} src={url} controls className="service-review__media-item" />
+                                ) : (
+                                  <img key={url} src={url} alt="" className="service-review__media-item" />
+                                ),
+                              )}
+                            </div>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
