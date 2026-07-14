@@ -48,8 +48,18 @@ const CloudinaryImagePicker = ({
     onImageUrlsChange(imageUrls.filter((url) => url !== imageUrl));
   };
 
+  const moveImage = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= imageUrls.length) return;
+
+    const reordered = [...imageUrls];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    onImageUrlsChange(reordered);
+  };
+
   const hasUploadConfig = Boolean(uploadPreset);
   const canUpload = hasUploadConfig && !disabled;
+  const canReorder = multiple && imageUrls.length > 1;
 
   return (
     <div className="cloudinary-image-picker">
@@ -77,9 +87,37 @@ const CloudinaryImagePicker = ({
 
       {imageUrls.length > 0 ? (
         <div className="service-image-preview-grid cloudinary-image-picker__grid" aria-label={label}>
-          {imageUrls.map((imageUrl) => (
+          {imageUrls.map((imageUrl, index) => (
             <div key={imageUrl} className="cloudinary-image-picker__item">
               <img src={imageUrl} alt={label} className="service-image-preview-grid__item" />
+
+              {canReorder && (
+                <div className="cloudinary-image-picker__move-buttons">
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      className="cloudinary-image-picker__move cloudinary-image-picker__move--left"
+                      onClick={() => moveImage(index, -1)}
+                      disabled={disabled}
+                      aria-label="Mover imagen a la izquierda"
+                    >
+                      ←
+                    </button>
+                  )}
+                  {index < imageUrls.length - 1 && (
+                    <button
+                      type="button"
+                      className="cloudinary-image-picker__move cloudinary-image-picker__move--right"
+                      onClick={() => moveImage(index, 1)}
+                      disabled={disabled}
+                      aria-label="Mover imagen a la derecha"
+                    >
+                      →
+                    </button>
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 className="cloudinary-image-picker__remove btn-secondary"
