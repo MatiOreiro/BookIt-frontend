@@ -204,21 +204,28 @@ const MisTramitesPage = () => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const [fetchedReservas, fetchedVisitas, fetchedPropuestas] = await Promise.all([
-          getMyReservas(),
-          getMyVisitas(),
-          getMyPropuestas(),
-        ]);
-        setReservas(fetchedReservas);
-        setVisitas(fetchedVisitas);
-        setPropuestas(fetchedPropuestas);
-        setSelectedIds(new Set(fetchedReservas.map(r => r.id)));
-      } catch {
+
+      const [reservasResult, visitasResult, propuestasResult] = await Promise.allSettled([
+        getMyReservas(),
+        getMyVisitas(),
+        getMyPropuestas(),
+      ]);
+
+      const fetchedReservas = reservasResult.status === 'fulfilled' ? reservasResult.value : [];
+      if (reservasResult.status === 'fulfilled') setReservas(fetchedReservas);
+      if (visitasResult.status === 'fulfilled') setVisitas(visitasResult.value);
+      if (propuestasResult.status === 'fulfilled') setPropuestas(propuestasResult.value);
+      setSelectedIds(new Set(fetchedReservas.map(r => r.id)));
+
+      if (
+        reservasResult.status === 'rejected' ||
+        visitasResult.status === 'rejected' ||
+        propuestasResult.status === 'rejected'
+      ) {
         setError('No se pudieron cargar tus trámites. Intentá de nuevo más tarde.');
-      } finally {
-        setLoading(false);
       }
+
+      setLoading(false);
     };
     fetchData();
   }, []);
@@ -285,7 +292,7 @@ const MisTramitesPage = () => {
           </p>
         )}
 
-        {!loading && !error && (
+        {!loading && (
           <>
             <nav className="mis-tramites__tabs" aria-label="Filtrar trámites">
               {(['todo', 'reservas', 'visitas', 'propuestas'] as const).map(tab => (
