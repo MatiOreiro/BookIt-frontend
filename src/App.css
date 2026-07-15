@@ -3946,3 +3946,57 @@ a {
   color: var(--text-muted);
   cursor: pointer;
 }
+
+/* Propuesta cards en Mis Trámites */
+
+.tramite-card__badge--propuesta {
+  background: rgba(122, 44, 255, 0.12);
+  color: var(--primary-strong);
+}
+
+.propuesta-card__salon {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.propuesta-card__servicios {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.propuesta-card__servicio-tipo {
+  font-style: italic;
+}
+
+.propuesta-card__total {
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.2rem 0 0;
+}
+
+.propuesta-card__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.tramite-card__delete {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tramite-card__delete:hover {
+  background: rgba(220, 38, 38, 0.08);
+}

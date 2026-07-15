@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMyReservas, getMyVisitas } from '../services/serviceService';
-import type { ReservationDto, ResenaDto, VisitDto } from '../types/service';
+import { deletePropuesta, getMyPropuestas } from '../services/propuestaService';
+import type { PropuestaDto, ReservationDto, ResenaDto, VisitDto } from '../types/service';
 import ReviewForm from '../components/ReviewForm';
+import { buildPropuestaPdf } from '../utils/propuestaPdf';
+import { slugify } from '../utils/slugify';
 
 type TramiteItem =
   | { tipo: 'reserva'; data: ReservationDto; fecha: Date }
   | { tipo: 'visita'; data: VisitDto; fecha: Date };
 
-type TabId = 'todo' | 'reservas' | 'visitas';
+type TabId = 'todo' | 'reservas' | 'visitas' | 'propuestas';
+
+type ShareableNavigator = Navigator & {
+  share?: (data: { files?: File[]; title?: string }) => Promise<void>;
+  canShare?: (data: { files?: File[] }) => boolean;
+};
 
 const moneyFmt = new Intl.NumberFormat('es-UY');
 const dateFmt = new Intl.DateTimeFormat('es-UY', { dateStyle: 'long', timeStyle: 'short' });
@@ -86,9 +94,77 @@ const VisitaCard = ({ data }: { data: VisitDto }) => {
   );
 };
 
+const handleCompartirPropuesta = async (propuesta: PropuestaDto) => {
+  const blob = buildPropuestaPdf(propuesta);
+  const filename = `propuesta-${slugify(propuesta.nombre)}.pdf`;
+  const file = new File([blob], filename, { type: 'application/pdf' });
+
+  const nav = navigator as ShareableNavigator;
+  if (nav.canShare?.({ files: [file] })) {
+    try {
+      await nav.share?.({ files: [file], title: propuesta.nombre });
+      return;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const PropuestaCard = ({
+  data,
+  onCompartir,
+  onEliminar,
+}: {
+  data: PropuestaDto;
+  onCompartir: (propuesta: PropuestaDto) => void;
+  onEliminar: (id: string) => void;
+}) => (
+  <article className="tramite-card">
+    <div className="tramite-card__badges">
+      <span className="tramite-card__badge tramite-card__badge--propuesta">Propuesta</span>
+    </div>
+    <h3 className="tramite-card__title">{data.nombre}</h3>
+    <p className="tramite-card__date">{dateFmtShort.format(new Date(data.fechaCreacion))}</p>
+
+    <div className="propuesta-card__salon">
+      <strong>{data.salon.nombre}</strong>
+      <span> — desde $ {moneyFmt.format(data.salon.precioMinimo)}</span>
+    </div>
+
+    {data.servicios.length > 0 && (
+      <ul className="propuesta-card__servicios">
+        {data.servicios.map((s) => (
+          <li key={s.id}>
+            {s.nombre} <span className="propuesta-card__servicio-tipo">({s.tipoServicio})</span> — desde $ {moneyFmt.format(s.precioMinimo)}
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <p className="propuesta-card__total">Total estimado: $ {moneyFmt.format(data.totalEstimado)}</p>
+
+    <div className="propuesta-card__actions">
+      <button type="button" className="btn-secondary" onClick={() => onCompartir(data)}>
+        Compartir
+      </button>
+      <button type="button" className="tramite-card__delete" onClick={() => onEliminar(data.id)}>
+        Eliminar propuesta
+      </button>
+    </div>
+  </article>
+);
+
 const MisTramitesPage = () => {
   const [reservas, setReservas] = useState<ReservationDto[]>([]);
   const [visitas, setVisitas] = useState<VisitDto[]>([]);
+  const [propuestas, setPropuestas] = useState<PropuestaDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('todo');
@@ -100,6 +176,17 @@ const MisTramitesPage = () => {
   const handleReviewSubmitted = (resena: ResenaDto) => {
     setReservas(prev => prev.map(r => (r.id === resena.reservaId ? { ...r, resenaId: resena.id } : r)));
     setReviewingReservaId(null);
+  };
+
+  const handleEliminarPropuesta = async (id: string) => {
+    const confirmed = globalThis.confirm('¿Querés eliminar esta propuesta?');
+    if (!confirmed) return;
+    try {
+      await deletePropuesta(id);
+      setPropuestas(prev => prev.filter(p => p.id !== id));
+    } catch {
+      setError('No se pudo eliminar la propuesta.');
+    }
   };
 
   useEffect(() => {
@@ -118,12 +205,14 @@ const MisTramitesPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const [fetchedReservas, fetchedVisitas] = await Promise.all([
+        const [fetchedReservas, fetchedVisitas, fetchedPropuestas] = await Promise.all([
           getMyReservas(),
           getMyVisitas(),
+          getMyPropuestas(),
         ]);
         setReservas(fetchedReservas);
         setVisitas(fetchedVisitas);
+        setPropuestas(fetchedPropuestas);
         setSelectedIds(new Set(fetchedReservas.map(r => r.id)));
       } catch {
         setError('No se pudieron cargar tus trámites. Intentá de nuevo más tarde.');
@@ -199,19 +288,35 @@ const MisTramitesPage = () => {
         {!loading && !error && (
           <>
             <nav className="mis-tramites__tabs" aria-label="Filtrar trámites">
-              {(['todo', 'reservas', 'visitas'] as const).map(tab => (
+              {(['todo', 'reservas', 'visitas', 'propuestas'] as const).map(tab => (
                 <button
                   key={tab}
                   type="button"
                   className={`mis-tramites__tab${activeTab === tab ? ' is-active' : ''}`}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab === 'todo' ? 'Todo' : tab === 'reservas' ? 'Reservas' : 'Visitas'}
+                  {tab === 'todo' ? 'Todo' : tab === 'reservas' ? 'Reservas' : tab === 'visitas' ? 'Visitas' : 'Propuestas'}
                 </button>
               ))}
             </nav>
 
-            {filteredItems.length === 0 ? (
+            {activeTab === 'propuestas' ? (
+              propuestas.length === 0 ? (
+                <p className="mis-tramites__empty">Todavía no tenés propuestas guardadas.</p>
+              ) : (
+                <ul className="mis-tramites__list" role="list">
+                  {propuestas.map(propuesta => (
+                    <li key={propuesta.id}>
+                      <PropuestaCard
+                        data={propuesta}
+                        onCompartir={handleCompartirPropuesta}
+                        onEliminar={handleEliminarPropuesta}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : filteredItems.length === 0 ? (
               <p className="mis-tramites__empty">{emptyMessage}</p>
             ) : (
               <ul className="mis-tramites__list" role="list">
