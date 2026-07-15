@@ -213,3 +213,28 @@ export interface ConfirmVisitReservationData {
   horasReservadas: number;
   montoAcordado: number;
 }
+
+export interface PropuestaItemDto {
+  id: string;
+  nombre: string;
+  tipoServicio: string;
+  precioMinimo: number;
+  vendorNombre?: string | null;
+  vendorEmail?: string | null;
+  vendorTelefono?: string | null;
+}
+
+export interface PropuestaDto {
+  id: string;
+  nombre: string;
+  fechaCreacion: string;
+  salon: PropuestaItemDto;
+  servicios: PropuestaItemDto[];
+  totalEstimado: number;
+}
+
+export interface CreatePropuestaRequest {
+  nombre: string;
+  salonId: string;
+  serviceIds: string[];
+}
