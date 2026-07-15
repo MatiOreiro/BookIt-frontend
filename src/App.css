@@ -3720,3 +3720,42 @@ a {
 .service-reviews__empty {
   color: var(--text-muted);
 }
+
+/* Agregar a propuesta */
+
+.propuesta-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  margin-top: 0.6rem;
+  background: transparent;
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.propuesta-add-btn:hover:not(:disabled) {
+  background: var(--primary-soft);
+}
+
+.propuesta-add-btn--added {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.propuesta-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.service-detail__propuesta-btn {
+  margin-top: 0.5rem;
+}
