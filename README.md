@@ -60,7 +60,7 @@ Las rutas protegidas redirigen a `/login` si el usuario no está autenticado.
 
 ## 🧪 Testing
 
-- Suite de **94 casos de prueba** (CP-01 a CP-94) documentados, con Playwright para los flujos end-to-end principales de reserva y gestión.
+Se documentaron **94 casos de prueba** (CP-01 a CP-94) en una planilla Excel como parte de la entrega de sprint. No son una suite automatizada — no hay Playwright ni ningún framework de testing en las dependencias del proyecto (verificado: no figura en `package.json`, no hay carpeta de tests en el repo).
 
 ## 📐 Metodología
 
