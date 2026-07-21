@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
+import AgregarAPropuestaButton from '../components/AgregarAPropuestaButton';
 import ProtectedRoute from '../components/ProtectedRoute';
 import LoginPage from '../pages/LoginPage';
 import RegisterUserPage from '../pages/RegisterUserPage';
@@ -359,6 +360,8 @@ const ServiceDetailPage = () => {
                     Agendar reserva
                   </button>
                 </div>
+
+                <AgregarAPropuestaButton service={service} className="service-detail__propuesta-btn" />
 
                 <p className="service-detail__response-note">Respuesta en menos de 24 horas</p>
               </aside>

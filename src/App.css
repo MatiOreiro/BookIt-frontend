@@ -3720,3 +3720,283 @@ a {
 .service-reviews__empty {
   color: var(--text-muted);
 }
+
+/* Agregar a propuesta */
+
+.propuesta-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  margin-top: 0.6rem;
+  background: transparent;
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.propuesta-add-btn:hover:not(:disabled) {
+  background: var(--primary-soft);
+}
+
+.propuesta-add-btn--added {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.propuesta-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.service-detail__propuesta-btn {
+  margin-top: 0.5rem;
+}
+
+/* Carrito de propuesta */
+
+.propuesta-cart-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.propuesta-cart-btn__badge {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.propuesta-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.propuesta-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 19, 40, 0.45);
+  border: 0;
+  cursor: pointer;
+}
+
+.propuesta-drawer__panel {
+  position: relative;
+  width: min(420px, 100%);
+  height: 100%;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.propuesta-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.propuesta-drawer__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.propuesta-drawer__close {
+  background: none;
+  border: 0;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.propuesta-drawer__body {
+  flex: 1;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.propuesta-drawer__section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.propuesta-drawer__empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.propuesta-drawer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.propuesta-drawer__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+
+.propuesta-drawer__item-price {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.propuesta-drawer__remove {
+  background: none;
+  border: 0;
+  color: #dc2626;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.propuesta-drawer__label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.propuesta-drawer__input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+}
+
+.propuesta-drawer__error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.propuesta-drawer__actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.propuesta-drawer__save {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--primary), #9a43ff);
+  color: #fff;
+  font-weight: 700;
+  border: 0;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.propuesta-drawer__save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.propuesta-drawer__clear {
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* Propuesta cards en Mis Trámites */
+
+.tramite-card__badge--propuesta {
+  background: rgba(122, 44, 255, 0.12);
+  color: var(--primary-strong);
+}
+
+.propuesta-card__salon {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.propuesta-card__servicios {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.propuesta-card__servicio-tipo {
+  font-style: italic;
+}
+
+.propuesta-card__total {
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.2rem 0 0;
+}
+
+.propuesta-card__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.tramite-card__delete {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tramite-card__delete:hover {
+  background: rgba(220, 38, 38, 0.08);
+}

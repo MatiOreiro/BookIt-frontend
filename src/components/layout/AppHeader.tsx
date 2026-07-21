@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useAuth from '../../hooks/useAuth';
 import { getServices } from '../../services/serviceService';
+import PropuestaCartButton from './PropuestaCartButton';
 import UserAvatarMenu from './UserAvatarMenu';
 
 const AppHeader = () => {
@@ -70,6 +71,7 @@ const AppHeader = () => {
                   Panel Dueño
                 </NavLink>
               )}
+              <PropuestaCartButton />
               <UserAvatarMenu user={user!} logout={handleLogout} />
             </>
           ) : (
