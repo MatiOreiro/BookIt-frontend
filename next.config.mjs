@@ -5,14 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const nextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: '/api/backend/:path*',
-        destination: 'https://bookit-backend-es10.onrender.com/:path*',
-      },
-    ];
-  },
+  output: 'standalone',
 
   webpack: (config) => {
     config.resolve = config.resolve || {};
