@@ -1,5 +1,6 @@
 import {
   createContext,
+  useEffect,
   useState,
   type ReactNode,
 } from 'react';
@@ -71,6 +72,49 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return null;
     }
   });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      return globalThis.window !== undefined && Boolean(globalThis.localStorage.getItem('token'));
+    } catch {
+      return false;
+    }
+  });
+
+  const logout = () => {
+    logoutService();
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+  };
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (cancelled) return;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        setUser(currentUser);
+      } catch {
+        if (!cancelled) logout();
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setAuthData = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
@@ -94,20 +138,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
-    logoutService();
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
-  };
-
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         isAuthenticated: Boolean(token),
-        isLoading: false,
+        isLoading,
         setAuthData,
         refreshUser,
         logout,
