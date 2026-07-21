@@ -58,7 +58,6 @@ const CloudinaryImagePicker = ({
   };
 
   const hasUploadConfig = Boolean(uploadPreset);
-  const canUpload = hasUploadConfig && !disabled;
   const canReorder = multiple && imageUrls.length > 1;
 
   return (
@@ -72,7 +71,6 @@ const CloudinaryImagePicker = ({
             uploadPreset={uploadPreset ?? ''}
             options={{ multiple }}
             onSuccess={handleSuccess}
-            disabled={!canUpload}
           >
             {multiple ? 'Subir imágenes' : 'Subir imagen'}
           </CldUploadButton>
