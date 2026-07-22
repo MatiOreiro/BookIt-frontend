@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useAuth from '../../hooks/useAuth';
 import usePropuestaDraft from '../../hooks/usePropuestaDraft';
 import { createPropuesta } from '../../services/propuestaService';
+import { isSalonType } from '../../utils/serviceType';
 
 const currencyFormatter = new Intl.NumberFormat('es-UY');
+const detailPathFor = (tipoServicio: string, id: string) =>
+  isSalonType(tipoServicio) ? `/lounges/${id}` : `/services/${id}`;
 
 const PropuestaDrawer = () => {
   const { isAuthenticated } = useAuth();
@@ -74,7 +77,13 @@ const PropuestaDrawer = () => {
             {draft.salon ? (
               <div className="propuesta-drawer__item">
                 <div>
-                  <strong>{draft.salon.nombre}</strong>
+                  <Link
+                    to={detailPathFor(draft.salon.tipoServicio, draft.salon.id)}
+                    className="propuesta-drawer__item-link"
+                    onClick={closeDrawer}
+                  >
+                    <strong>{draft.salon.nombre}</strong>
+                  </Link>
                   <span className="propuesta-drawer__item-price">
                     Desde $ {currencyFormatter.format(draft.salon.precioMinimo)}
                   </span>
@@ -97,7 +106,13 @@ const PropuestaDrawer = () => {
                 {draft.servicios.map((s) => (
                   <li key={s.id} className="propuesta-drawer__item">
                     <div>
-                      <strong>{s.nombre}</strong>
+                      <Link
+                        to={detailPathFor(s.tipoServicio, s.id)}
+                        className="propuesta-drawer__item-link"
+                        onClick={closeDrawer}
+                      >
+                        <strong>{s.nombre}</strong>
+                      </Link>
                       <span className="propuesta-drawer__item-price">
                         Desde $ {currencyFormatter.format(s.precioMinimo)}
                       </span>
