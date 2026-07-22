@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { getServices } from '../services/serviceService';
 import { getEventCategories, type CatalogOption } from '../services/catalogService';
 import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type DepartamentoOption } from '../services/geographyService';
+import { generateFilters } from '../services/assistantService';
 import type { Service } from '../types/service';
 
 const normalizeType = (value: string) =>
@@ -77,6 +79,11 @@ const ServicesListPage = () => {
   const [departamentoFilter, setDepartamentoFilter] = useState(initialDepartment);
   const [barrioFilter, setBarrioFilter] = useState(initialBarrio);
   const [invitadosFilter, setInvitadosFilter] = useState(searchParams.get('guests') || '');
+
+  // Búsqueda con IA
+  const [aiDescripcion, setAiDescripcion] = useState('');
+  const [isGeneratingFilters, setIsGeneratingFilters] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
   // Applied filters (what's actually being used for search)
   const [appliedFilters, setAppliedFilters] = useState({
@@ -196,6 +203,94 @@ const ServicesListPage = () => {
     });
   };
 
+  const handleGenerateFilters = async () => {
+    const descripcion = aiDescripcion.trim();
+    if (!descripcion || isGeneratingFilters) return;
+
+    setIsGeneratingFilters(true);
+    setAiFeedback(null);
+
+    try {
+      const generated = await generateFilters(descripcion);
+      const appliedParts: string[] = [];
+
+      // Los setters de abajo actualizan los inputs visibles del sidebar. Como React no
+      // refleja esos cambios de estado sincrónicamente, la búsqueda se dispara al final
+      // llamando a setAppliedFilters directamente con los valores ya resueltos (nextXxx),
+      // en vez de reusar handleApplyFilters (que leería el estado viejo por closure stale).
+      const nextCategoryId = generated.categoryIds?.[0] ?? eventTypeFilter;
+      if (generated.categoryIds?.[0]) {
+        setEventTypeFilter(nextCategoryId);
+        const categoryName = categories.find((c) => c.id === nextCategoryId)?.name;
+        if (categoryName) appliedParts.push(categoryName);
+      }
+
+      const nextMinPrice = generated.minPrice != null ? String(generated.minPrice) : minPriceFilter;
+      const nextMaxPrice = generated.maxPrice != null ? String(generated.maxPrice) : maxPriceFilter;
+      if (generated.minPrice != null) setMinPriceFilter(nextMinPrice);
+      if (generated.maxPrice != null) setMaxPriceFilter(nextMaxPrice);
+      if (generated.minPrice != null && generated.maxPrice != null) {
+        appliedParts.push(`$${generated.minPrice} - $${generated.maxPrice}`);
+      } else if (generated.minPrice != null) {
+        appliedParts.push(`desde $${generated.minPrice}`);
+      } else if (generated.maxPrice != null) {
+        appliedParts.push(`hasta $${generated.maxPrice}`);
+      }
+
+      const nextGuests = generated.guests ?? invitadosFilter;
+      if (generated.guests) {
+        setInvitadosFilter(nextGuests);
+        appliedParts.push(`${generated.guests} invitados`);
+      }
+
+      let nextDepartamentoId = departamentoFilter;
+      let nextBarrioId = barrioFilter;
+
+      if (generated.departamentoId) {
+        const departamentoChanged = generated.departamentoId !== departamentoFilter;
+        nextDepartamentoId = generated.departamentoId;
+        setDepartamentoFilter(nextDepartamentoId);
+
+        const departamentoName = departamentos.find((d) => d.id === nextDepartamentoId)?.nombre;
+        if (departamentoName) appliedParts.push(departamentoName);
+
+        if (generated.barrioId) {
+          nextBarrioId = generated.barrioId;
+          setBarrioFilter(nextBarrioId);
+          try {
+            const barriosForDept = await getBarriosByDepartamento(nextDepartamentoId);
+            const barrioName = barriosForDept.find((b) => b.id === nextBarrioId)?.nombre;
+            if (barrioName) appliedParts.push(barrioName);
+          } catch {
+            // El nombre del barrio es solo para el mensaje de feedback; no bloquea el filtro.
+          }
+        } else if (departamentoChanged) {
+          nextBarrioId = '';
+          setBarrioFilter('');
+        }
+      }
+
+      if (appliedParts.length === 0) {
+        toast.error('No pudimos identificar filtros claros en esa descripción. Probá con más detalles.');
+        return;
+      }
+
+      setAiFeedback(`Aplicamos: ${appliedParts.join(', ')}`);
+      setAppliedFilters({
+        categoryId: nextCategoryId,
+        minPrice: nextMinPrice ? Number.parseFloat(nextMinPrice) : undefined,
+        maxPrice: nextMaxPrice ? Number.parseFloat(nextMaxPrice) : undefined,
+        departamentoId: nextDepartamentoId,
+        barrioId: nextBarrioId,
+        guests: nextGuests,
+      });
+    } catch {
+      toast.error('No pudimos generar los filtros con IA. Probá de nuevo en unos segundos.');
+    } finally {
+      setIsGeneratingFilters(false);
+    }
+  };
+
   const activeFilters = [eventTypeFilter, minPriceFilter, maxPriceFilter, departamentoFilter, barrioFilter, invitadosFilter].filter(
     Boolean,
   ).length;
@@ -211,6 +306,33 @@ const ServicesListPage = () => {
       <div className="services-page__header">
         <h1>{isServicesMode ? 'Servicios para eventos en Montevideo' : 'Salones para eventos en Montevideo'}</h1>
         <p className="services-page__subtitle">{serviceCountLabel}</p>
+      </div>
+
+      <div className="ai-filters">
+        <label htmlFor="ai-descripcion" className="ai-filters__label">
+          Buscar con IA
+        </label>
+        <textarea
+          id="ai-descripcion"
+          className="ai-filters__textarea"
+          placeholder="Describí tu evento (ej: 'casamiento para 150 personas en Montevideo, presupuesto medio')"
+          value={aiDescripcion}
+          onChange={(e) => setAiDescripcion(e.target.value)}
+          maxLength={500}
+          rows={2}
+          disabled={isGeneratingFilters}
+        />
+        <div className="ai-filters__footer">
+          <button
+            type="button"
+            className="ai-filters__submit"
+            onClick={handleGenerateFilters}
+            disabled={isGeneratingFilters || !aiDescripcion.trim()}
+          >
+            {isGeneratingFilters ? 'Buscando...' : 'Buscar con IA'}
+          </button>
+          {aiFeedback && <span className="ai-filters__feedback">{aiFeedback}</span>}
+        </div>
       </div>
 
       <div className="services-page__container">

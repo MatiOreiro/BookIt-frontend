@@ -17,6 +17,7 @@ import { getServiceById } from '../services/serviceService';
 import { getResenasByServiceId } from '../services/resenaService';
 import type { ResenaDto, Service } from '../types/service';
 import { setNavigate } from '../utils/navigation';
+import AssistantChat from '../components/AssistantChat';
 
 const currencyFormatter = new Intl.NumberFormat('es-UY');
 
@@ -356,6 +357,8 @@ const ServiceDetailPage = () => {
             </section>
           </div>
         )}
+
+        {!loading && !error && service && <AssistantChat serviceId={service.id} />}
       </div>
     </div>
   );
