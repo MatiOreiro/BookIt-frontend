@@ -3886,6 +3886,15 @@ a {
   color: var(--text-muted);
 }
 
+.propuesta-drawer__item-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.propuesta-drawer__item-link:hover strong {
+  text-decoration: underline;
+}
+
 .propuesta-drawer__remove {
   background: none;
   border: 0;

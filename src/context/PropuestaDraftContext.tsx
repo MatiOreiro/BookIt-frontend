@@ -20,6 +20,9 @@ interface PropuestaDraftContextValue {
   removeServicio: (id: string) => void;
   clear: () => void;
   itemCount: number;
+  isDrawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 }
 
 const STORAGE_KEY = 'bookit_propuesta_draft';
@@ -56,6 +59,7 @@ interface PropuestaDraftProviderProps {
 
 export const PropuestaDraftProvider = ({ children }: PropuestaDraftProviderProps) => {
   const [draft, setDraft] = useState<PropuestaDraft>(readStoredDraft);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     writeStoredDraft(draft);
@@ -85,9 +89,23 @@ export const PropuestaDraftProvider = ({ children }: PropuestaDraftProviderProps
 
   const itemCount = (draft.salon ? 1 : 0) + draft.servicios.length;
 
+  const openDrawer = () => setIsDrawerOpen(true);
+  const closeDrawer = () => setIsDrawerOpen(false);
+
   return (
     <PropuestaDraftContext.Provider
-      value={{ draft, addSalon, removeSalon, addServicio, removeServicio, clear, itemCount }}
+      value={{
+        draft,
+        addSalon,
+        removeSalon,
+        addServicio,
+        removeServicio,
+        clear,
+        itemCount,
+        isDrawerOpen,
+        openDrawer,
+        closeDrawer,
+      }}
     >
       {children}
     </PropuestaDraftContext.Provider>
