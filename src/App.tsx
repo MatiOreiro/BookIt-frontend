@@ -1,10 +1,13 @@
 import { AuthProvider } from './context/AuthContext';
+import { PropuestaDraftProvider } from './context/PropuestaDraftContext';
 import AppRouter from './routes/AppRouter';
 
 function App() {
   return (
     <AuthProvider>
-      <AppRouter />
+      <PropuestaDraftProvider>
+        <AppRouter />
+      </PropuestaDraftProvider>
     </AuthProvider>
   );
 }

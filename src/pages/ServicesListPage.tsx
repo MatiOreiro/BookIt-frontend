@@ -6,6 +6,7 @@ import { getEventCategories, type CatalogOption } from '../services/catalogServi
 import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type DepartamentoOption } from '../services/geographyService';
 import { generateFilters } from '../services/assistantService';
 import type { Service } from '../types/service';
+import AgregarAPropuestaButton from '../components/AgregarAPropuestaButton';
 
 const normalizeType = (value: string) =>
   value
@@ -537,6 +538,8 @@ const ServicesListPage = () => {
                         Ver más
                       </button>
                     </div>
+
+                    <AgregarAPropuestaButton service={service} className="service-card__propuesta-btn" />
                   </div>
                 </div>
               ))}

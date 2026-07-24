@@ -58,7 +58,6 @@ const CloudinaryMediaPicker = ({
 
   const hasUploadConfig = Boolean(uploadPreset);
   const reachedLimit = mediaUrls.length >= maxFiles;
-  const canUpload = hasUploadConfig && !disabled && !reachedLimit;
 
   return (
     <div className="cloudinary-image-picker">
@@ -71,7 +70,6 @@ const CloudinaryMediaPicker = ({
             uploadPreset={uploadPreset ?? ''}
             options={{ multiple: true, resourceType: 'auto', maxFiles }}
             onSuccess={handleSuccess}
-            disabled={!canUpload}
           >
             Subir fotos o videos
           </CldUploadButton>
