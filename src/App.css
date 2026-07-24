@@ -3924,6 +3924,10 @@ a {
 }
 
 .assistant-chat__form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Agregar a propuesta */
 
 .propuesta-add-btn {
@@ -4155,6 +4159,8 @@ a {
     right: 1rem;
     bottom: 1rem;
   }
+}
+
 .propuesta-drawer__clear {
   padding: 0.75rem 1rem;
   background: transparent;
