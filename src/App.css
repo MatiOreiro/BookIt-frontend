@@ -533,6 +533,12 @@ a {
   line-height: 1.45;
 }
 
+.form-group__error {
+  color: #9b1c1c;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .form-group label {
   font-size: 0.9rem;
   font-weight: 700;
