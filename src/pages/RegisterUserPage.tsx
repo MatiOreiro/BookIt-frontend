@@ -22,6 +22,7 @@ const RegisterUserPage = () => {
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
@@ -145,12 +146,17 @@ const RegisterUserPage = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setIsPasswordFocused(true)}
+              onBlur={() => setIsPasswordFocused(false)}
               placeholder="••••••••"
               required
               disabled={isLoading}
               minLength={8}
               maxLength={128}
             />
+            {isPasswordFocused && (
+              <span className="form-group__hint">{PASSWORD_REQUIREMENTS_HINT}</span>
+            )}
             {fieldErrors.password && (
               <span className="form-group__error">{fieldErrors.password}</span>
             )}
@@ -176,7 +182,7 @@ const RegisterUserPage = () => {
 
           <CloudinaryImagePicker
             label="Foto de perfil"
-            hint="Opcional. Subila desde tu dispositivo y guardamos automáticamente la URL de Cloudinary."
+            hint="Opcional."
             imageUrls={profileImageUrl ? [profileImageUrl] : []}
             onImageUrlsChange={(urls) => setProfileImageUrl(urls[0] ?? '')}
             disabled={isLoading}
