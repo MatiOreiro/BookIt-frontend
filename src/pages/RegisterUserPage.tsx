@@ -154,7 +154,7 @@ const RegisterUserPage = () => {
               minLength={8}
               maxLength={128}
             />
-            {isPasswordFocused && (
+            {isPasswordFocused && !fieldErrors.password && (
               <span className="form-group__hint">{PASSWORD_REQUIREMENTS_HINT}</span>
             )}
             {fieldErrors.password && (
