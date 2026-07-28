@@ -5,6 +5,11 @@ import { registerUser } from '../services/authService';
 import axios from 'axios';
 import CloudinaryImagePicker from '../components/CloudinaryImagePicker';
 
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
+const PASSWORD_REQUIREMENTS_HINT =
+  'Debe tener al menos 8 caracteres, con mayúsculas, minúsculas, números y un carácter especial (@$!%*?&).';
+
 const RegisterUserPage = () => {
   const navigate = useNavigate();
   const { setAuthData } = useAuth();
@@ -16,14 +21,25 @@ const RegisterUserPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
 
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
+    const nextFieldErrors: Record<string, string> = {};
+
+    if (!PASSWORD_REGEX.test(password)) {
+      nextFieldErrors.password = PASSWORD_REQUIREMENTS_HINT;
+    } else if (password !== confirmPassword) {
+      nextFieldErrors.confirmPassword = 'Las contraseñas no coinciden.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       return;
     }
 
@@ -42,6 +58,20 @@ const RegisterUserPage = () => {
       navigate('/');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
+        const backendErrors = err.response?.data?.errors as
+          | Record<string, string[]>
+          | undefined;
+
+        if (backendErrors) {
+          const mappedErrors: Record<string, string> = {};
+          for (const [key, messages] of Object.entries(backendErrors)) {
+            if (messages.length > 0) {
+              mappedErrors[key.toLowerCase()] = messages[0];
+            }
+          }
+          setFieldErrors(mappedErrors);
+        }
+
         setError(
           err.response?.data?.message ?? 'Error al registrarse. Intenta nuevamente.',
         );
@@ -72,6 +102,9 @@ const RegisterUserPage = () => {
               required
               disabled={isLoading}
             />
+            {fieldErrors.nombre && (
+              <span className="form-group__error">{fieldErrors.nombre}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -85,6 +118,9 @@ const RegisterUserPage = () => {
               required
               disabled={isLoading}
             />
+            {fieldErrors.telefono && (
+              <span className="form-group__error">{fieldErrors.telefono}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -98,6 +134,9 @@ const RegisterUserPage = () => {
               required
               disabled={isLoading}
             />
+            {fieldErrors.email && (
+              <span className="form-group__error">{fieldErrors.email}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -107,11 +146,20 @@ const RegisterUserPage = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setIsPasswordFocused(true)}
+              onBlur={() => setIsPasswordFocused(false)}
               placeholder="••••••••"
               required
               disabled={isLoading}
-              minLength={6}
+              minLength={8}
+              maxLength={128}
             />
+            {isPasswordFocused && !fieldErrors.password && (
+              <span className="form-group__hint">{PASSWORD_REQUIREMENTS_HINT}</span>
+            )}
+            {fieldErrors.password && (
+              <span className="form-group__error">{fieldErrors.password}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -124,13 +172,17 @@ const RegisterUserPage = () => {
               placeholder="••••••••"
               required
               disabled={isLoading}
-              minLength={6}
+              minLength={8}
+              maxLength={128}
             />
+            {fieldErrors.confirmPassword && (
+              <span className="form-group__error">{fieldErrors.confirmPassword}</span>
+            )}
           </div>
 
           <CloudinaryImagePicker
             label="Foto de perfil"
-            hint="Opcional. Subila desde tu dispositivo y guardamos automáticamente la URL de Cloudinary."
+            hint="Opcional."
             imageUrls={profileImageUrl ? [profileImageUrl] : []}
             onImageUrlsChange={(urls) => setProfileImageUrl(urls[0] ?? '')}
             disabled={isLoading}
