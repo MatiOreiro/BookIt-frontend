@@ -8,6 +8,8 @@ import { generateFilters } from '../services/assistantService';
 import type { Service } from '../types/service';
 import AgregarAPropuestaButton from '../components/AgregarAPropuestaButton';
 
+type SortOption = 'rating' | 'recent' | 'price_asc' | 'price_desc' | 'capacity_asc' | 'capacity_desc';
+
 const normalizeType = (value: string) =>
   value
     .toLowerCase()
@@ -35,6 +37,13 @@ const matchesDepartmentFilter = (service: Service, departamentoId?: string) => {
 const matchesBarrioFilter = (service: Service, barrioId?: string) => {
   if (!barrioId) return true;
   return service.direccion?.barrio?.id === barrioId;
+};
+
+const compareNullable = (a: number | null, b: number | null, direction: 1 | -1) => {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return (a - b) * direction;
 };
 
 const matchesGuestsFilter = (service: Service, guests?: string) => {
@@ -83,7 +92,7 @@ const ServicesListPage = () => {
 
   // Búsqueda por nombre y orden (client-side, se aplican en cada tecla/cambio)
   const [nameFilter, setNameFilter] = useState('');
-  const [sortOption, setSortOption] = useState<'rating' | 'recent'>('rating');
+  const [sortOption, setSortOption] = useState<SortOption>('rating');
 
   // Búsqueda con IA
   const [aiDescripcion, setAiDescripcion] = useState('');
@@ -148,14 +157,28 @@ const ServicesListPage = () => {
       : services;
 
     const sorted = [...filtered];
-    if (sortOption === 'recent') {
-      sorted.sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
-    } else {
-      sorted.sort((a, b) => {
-        const ratingDiff = (b.avgRating ?? -1) - (a.avgRating ?? -1);
-        if (ratingDiff !== 0) return ratingDiff;
-        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
-      });
+    switch (sortOption) {
+      case 'recent':
+        sorted.sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
+        break;
+      case 'price_asc':
+        sorted.sort((a, b) => compareNullable(a.precioMinimo ?? null, b.precioMinimo ?? null, 1));
+        break;
+      case 'price_desc':
+        sorted.sort((a, b) => compareNullable(a.precioMinimo ?? null, b.precioMinimo ?? null, -1));
+        break;
+      case 'capacity_asc':
+        sorted.sort((a, b) => compareNullable(a.capacidad ?? null, b.capacidad ?? null, 1));
+        break;
+      case 'capacity_desc':
+        sorted.sort((a, b) => compareNullable(a.capacidad ?? null, b.capacidad ?? null, -1));
+        break;
+      default:
+        sorted.sort((a, b) => {
+          const ratingDiff = (b.avgRating ?? -1) - (a.avgRating ?? -1);
+          if (ratingDiff !== 0) return ratingDiff;
+          return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+        });
     }
 
     return sorted;
@@ -376,11 +399,15 @@ const ServicesListPage = () => {
             <select
               className="services-filters__sort-select"
               value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as 'rating' | 'recent')}
+              onChange={(e) => setSortOption(e.target.value as SortOption)}
               aria-label="Ordenar resultados"
             >
               <option value="rating">Mejor valorados</option>
               <option value="recent">Más recientes</option>
+              <option value="price_asc">Precio: menor a mayor</option>
+              <option value="price_desc">Precio: mayor a menor</option>
+              <option value="capacity_asc">Capacidad: menor a mayor</option>
+              <option value="capacity_desc">Capacidad: mayor a menor</option>
             </select>
           </div>
 
