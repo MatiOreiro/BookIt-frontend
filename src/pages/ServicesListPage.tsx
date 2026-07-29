@@ -81,6 +81,10 @@ const ServicesListPage = () => {
   const [barrioFilter, setBarrioFilter] = useState(initialBarrio);
   const [invitadosFilter, setInvitadosFilter] = useState(searchParams.get('guests') || '');
 
+  // Búsqueda por nombre y orden (client-side, se aplican en cada tecla/cambio)
+  const [nameFilter, setNameFilter] = useState('');
+  const [sortOption, setSortOption] = useState<'rating' | 'recent'>('rating');
+
   // Búsqueda con IA
   const [aiDescripcion, setAiDescripcion] = useState('');
   const [isGeneratingFilters, setIsGeneratingFilters] = useState(false);
@@ -136,6 +140,26 @@ const ServicesListPage = () => {
 
     return service.ubicacion || 'Ubicación no especificada';
   };
+
+  const displayedServices = useMemo(() => {
+    const normalizedName = normalizeType(nameFilter);
+    const filtered = normalizedName
+      ? services.filter((service) => normalizeType(service.nombre || '').includes(normalizedName))
+      : services;
+
+    const sorted = [...filtered];
+    if (sortOption === 'recent') {
+      sorted.sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
+    } else {
+      sorted.sort((a, b) => {
+        const ratingDiff = (b.avgRating ?? -1) - (a.avgRating ?? -1);
+        if (ratingDiff !== 0) return ratingDiff;
+        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+      });
+    }
+
+    return sorted;
+  }, [services, nameFilter, sortOption]);
 
   const fetchFilters = useMemo(() => ({
     minPrice: appliedFilters.minPrice,
@@ -194,6 +218,7 @@ const ServicesListPage = () => {
     setDepartamentoFilter('');
     setBarrioFilter('');
     setInvitadosFilter('');
+    setNameFilter('');
     setAppliedFilters({
       categoryId: '',
       minPrice: undefined,
@@ -292,15 +317,15 @@ const ServicesListPage = () => {
     }
   };
 
-  const activeFilters = [eventTypeFilter, minPriceFilter, maxPriceFilter, departamentoFilter, barrioFilter, invitadosFilter].filter(
+  const activeFilters = [eventTypeFilter, minPriceFilter, maxPriceFilter, departamentoFilter, barrioFilter, invitadosFilter, nameFilter].filter(
     Boolean,
   ).length;
   const searchSuffix = searchParams.toString() ? `?${searchParams.toString()}` : '';
   const serviceLabel = isServicesMode ? 'servicio' : 'salón';
   const serviceLabelPlural = isServicesMode ? 'servicios' : 'salones';
-  const serviceCountLabel = services.length === 1
+  const serviceCountLabel = displayedServices.length === 1
     ? `1 ${serviceLabel} disponible`
-    : `${services.length} ${serviceLabelPlural} disponibles`;
+    : `${displayedServices.length} ${serviceLabelPlural} disponibles`;
 
   return (
     <div className="services-page">
@@ -339,6 +364,26 @@ const ServicesListPage = () => {
       <div className="services-page__container">
         {/* Filtros Sidebar */}
         <aside className="services-filters">
+          <div className="services-filters__search">
+            <input
+              type="text"
+              className="services-filters__search-input"
+              placeholder={`Buscar ${serviceLabelPlural} por nombre...`}
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              aria-label="Buscar por nombre"
+            />
+            <select
+              className="services-filters__sort-select"
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value as 'rating' | 'recent')}
+              aria-label="Ordenar resultados"
+            >
+              <option value="rating">Mejor valorados</option>
+              <option value="recent">Más recientes</option>
+            </select>
+          </div>
+
           <div className="services-filters__header">
             <h2>Filtros</h2>
             {activeFilters > 0 && (
@@ -475,7 +520,7 @@ const ServicesListPage = () => {
             </div>
           )}
 
-          {!loading && !error && services.length === 0 && (
+          {!loading && !error && displayedServices.length === 0 && (
             <div className="services-empty">
               <p>No se encontraron resultados con los filtros aplicados.</p>
               <button className="btn-primary" onClick={handleClearFilters}>
@@ -484,9 +529,9 @@ const ServicesListPage = () => {
             </div>
           )}
 
-          {!loading && !error && services.length > 0 && (
+          {!loading && !error && displayedServices.length > 0 && (
             <div className="services-masonry">
-              {services.map((service) => (
+              {displayedServices.map((service) => (
                 <div key={service.id} className="service-card">
                   <div className="service-card__image">
                     {service.imagenes?.[0] ? (

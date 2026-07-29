@@ -1963,6 +1963,44 @@ a {
   top: 1rem;
 }
 
+.services-filters__search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.services-filters__search-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.services-filters__search-input:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
+.services-filters__sort-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.services-filters__sort-select:hover,
+.services-filters__sort-select:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
 .services-filters__header {
   display: flex;
   justify-content: space-between;
