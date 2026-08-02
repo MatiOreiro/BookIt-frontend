@@ -6,6 +6,7 @@ import {
 } from 'react';
 import type { User } from '../types/auth';
 import { getCurrentUser, logout as logoutService } from '../services/authService';
+import { CLEAR_DRAFT_EVENT } from './PropuestaDraftContext';
 
 interface AuthContextValue {
   user: User | null;
@@ -85,6 +86,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    window.dispatchEvent(new Event(CLEAR_DRAFT_EVENT));
   };
 
   useEffect(() => {
