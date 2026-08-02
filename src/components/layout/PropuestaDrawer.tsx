@@ -18,12 +18,21 @@ const PropuestaDrawer = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isAuthenticated || !isDrawerOpen) return null;
+  if (!isDrawerOpen) return null;
 
   const canSave = draft.salon != null && draft.servicios.length > 0 && nombre.trim().length > 0;
 
   const handleGuardar = async () => {
     if (!draft.salon || draft.servicios.length === 0) return;
+
+    if (!isAuthenticated) {
+      closeDrawer();
+      navigate('/login', {
+        state: { propuestaPending: true, propuestaNombre: nombre.trim() },
+      });
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {

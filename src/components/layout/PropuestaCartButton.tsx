@@ -1,11 +1,7 @@
-import useAuth from '../../hooks/useAuth';
 import usePropuestaDraft from '../../hooks/usePropuestaDraft';
 
 const PropuestaCartButton = () => {
-  const { isAuthenticated } = useAuth();
   const { itemCount, openDrawer } = usePropuestaDraft();
-
-  if (!isAuthenticated) return null;
 
   return (
     <button
