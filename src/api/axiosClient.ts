@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { navigate } from '../utils/navigation';
+import { CLEAR_DRAFT_EVENT } from '../context/PropuestaDraftContext';
 
 const resolvedBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'http://localhost:5062';
@@ -30,6 +31,8 @@ apiClient.interceptors.response.use(
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.dispatchEvent(new Event(CLEAR_DRAFT_EVENT));
         navigate('/login');
       }
     }

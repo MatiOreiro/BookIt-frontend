@@ -64,6 +64,7 @@ const AppHeader = () => {
         </nav>
 
         <div className="app-header__actions">
+          <PropuestaCartButton />
           {isAuthenticated ? (
             <>
               {isVendor && hasService && (
@@ -71,7 +72,6 @@ const AppHeader = () => {
                   Panel Dueño
                 </NavLink>
               )}
-              <PropuestaCartButton />
               <UserAvatarMenu user={user!} logout={handleLogout} />
             </>
           ) : (
