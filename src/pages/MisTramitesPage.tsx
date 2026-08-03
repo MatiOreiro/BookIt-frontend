@@ -219,6 +219,12 @@ const MisTramitesPage = () => {
     try {
       await deletePropuesta(id);
       setPropuestas(prev => prev.filter(p => p.id !== id));
+      setSelectedPropuestaIds(prev => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch {
       setError('No se pudo eliminar la propuesta.');
     }
