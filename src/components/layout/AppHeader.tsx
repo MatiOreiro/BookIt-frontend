@@ -58,9 +58,9 @@ const AppHeader = () => {
           <NavLink to="/services" className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
             Servicios
           </NavLink>
-          <a className="app-nav__link" href="#footer">
+          <NavLink to="/contact" className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
             Contacto
-          </a>
+          </NavLink>
         </nav>
 
         <div className="app-header__actions">
