@@ -3502,6 +3502,148 @@ a {
   color: var(--primary);
 }
 
+/* Comparar propuestas modal */
+
+.comparar-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.comparar-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 17, 48, 0.5);
+  border: 0;
+  cursor: pointer;
+}
+
+.comparar-modal__box {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  box-shadow: var(--shadow);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comparar-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.comparar__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.comparar-modal__close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.comparar-modal__close:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.comparar__table-wrapper {
+  overflow-x: auto;
+}
+
+.comparar__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.comparar__table th {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.comparar__table thead th {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.comparar__table td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.comparar__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.comparar__precio {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.comparar__servicios-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.comparar__servicio-tipo {
+  font-style: italic;
+}
+
+.comparar__empty {
+  color: var(--text-muted);
+}
+
+.comparar__total--min {
+  background: rgba(22, 163, 74, 0.1);
+  font-weight: 700;
+  color: #15803d;
+}
+
+.comparar__badge-min {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
 /* ====== BookingDateTimePicker ====== */
 
 .booking-picker {
