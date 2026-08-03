@@ -3435,6 +3435,12 @@ a {
   transform: translateY(-1px);
 }
 
+.mis-tramites__comparar-trigger {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
 /* Calculator modal */
 
 .calculator-modal {
@@ -4393,6 +4399,16 @@ a {
   display: flex;
   gap: 0.6rem;
   margin-top: 0.4rem;
+}
+
+.propuesta-card__compare-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: fit-content;
 }
 
 .tramite-card__delete {
