@@ -193,17 +193,14 @@ const MisTramitesPage = () => {
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
 
   const togglePropuestaSelected = (id: string) => {
+    if (!selectedPropuestaIds.has(id) && selectedPropuestaIds.size >= MAX_COMPARAR) {
+      toast.info(`Podés comparar hasta ${MAX_COMPARAR} propuestas a la vez.`);
+      return;
+    }
     setSelectedPropuestaIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        return next;
-      }
-      if (next.size >= MAX_COMPARAR) {
-        toast.info(`Podés comparar hasta ${MAX_COMPARAR} propuestas a la vez.`);
-        return prev;
-      }
-      next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
