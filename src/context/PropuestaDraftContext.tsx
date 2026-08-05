@@ -27,6 +27,7 @@ interface PropuestaDraftContextValue {
 
 const STORAGE_KEY = 'bookit_propuesta_draft';
 const EMPTY_DRAFT: PropuestaDraft = { salon: null, servicios: [] };
+export const CLEAR_DRAFT_EVENT = 'bookit:propuesta-draft-clear';
 
 const PropuestaDraftContext = createContext<PropuestaDraftContextValue | null>(null);
 
@@ -64,6 +65,12 @@ export const PropuestaDraftProvider = ({ children }: PropuestaDraftProviderProps
   useEffect(() => {
     writeStoredDraft(draft);
   }, [draft]);
+
+  useEffect(() => {
+    const handleClear = () => setDraft(EMPTY_DRAFT);
+    window.addEventListener(CLEAR_DRAFT_EVENT, handleClear);
+    return () => window.removeEventListener(CLEAR_DRAFT_EVENT, handleClear);
+  }, []);
 
   const addSalon = (item: PropuestaDraftItem) => {
     setDraft((prev) => ({ ...prev, salon: item }));

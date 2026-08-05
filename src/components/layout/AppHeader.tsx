@@ -88,12 +88,13 @@ const AppHeader = () => {
             <NavLink to="/services" onClick={closeMenu} className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
               Servicios
             </NavLink>
-            <a className="app-nav__link" href="#footer" onClick={closeMenu}>
+            <NavLink to="/contact" onClick={closeMenu} className={({ isActive }) => `app-nav__link${isActive ? ' is-active' : ''}`}>
               Contacto
-            </a>
+            </NavLink>
           </nav>
 
           <div className="app-header__actions">
+            <PropuestaCartButton />
             {isAuthenticated ? (
               <>
                 {isVendor && hasService && (
@@ -101,7 +102,6 @@ const AppHeader = () => {
                     Panel Dueño
                   </NavLink>
                 )}
-                <PropuestaCartButton />
                 <UserAvatarMenu user={user!} logout={handleLogout} />
               </>
             ) : (

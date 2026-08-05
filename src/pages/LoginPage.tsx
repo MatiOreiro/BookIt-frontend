@@ -1,13 +1,23 @@
 import { useState, type SyntheticEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useAuth from '../hooks/useAuth';
+import usePropuestaDraft from '../hooks/usePropuestaDraft';
 import { login } from '../services/authService';
+import { createPropuesta } from '../services/propuestaService';
 import axios from 'axios';
+
+interface PendingPropuestaState {
+  propuestaPending?: boolean;
+  propuestaNombre?: string;
+}
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setAuthData } = useAuth();
+  const { draft, clear } = usePropuestaDraft();
+  const pendingState = location.state as PendingPropuestaState | null;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,6 +37,23 @@ const LoginPage = () => {
     try {
       const data = await login({ email, password });
       setAuthData(data.token, data.user);
+
+      if (pendingState?.propuestaPending && draft.salon && draft.servicios.length > 0) {
+        try {
+          await createPropuesta({
+            nombre: pendingState.propuestaNombre ?? '',
+            salonId: draft.salon.id,
+            serviceIds: draft.servicios.map((s) => s.id),
+          });
+          clear();
+          toast.success('Propuesta guardada. Podés verla en Mis trámites.');
+          navigate('/mis-tramites');
+          return;
+        } catch {
+          toast.error('No se pudo guardar tu propuesta automáticamente. Podés reintentar desde el carrito.');
+        }
+      }
+
       toast.success(`Bienvenido/a, ${data.user.name}!`);
       navigate(isVendorRole(data.user.role) ? '/vendor/dashboard' : '/');
     } catch (err: unknown) {

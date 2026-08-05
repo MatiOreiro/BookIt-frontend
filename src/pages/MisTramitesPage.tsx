@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import { getMyReservas, getMyVisitas } from '../services/serviceService';
 import { deletePropuesta, getMyPropuestas } from '../services/propuestaService';
 import type { PropuestaDto, ReservationDto, ResenaDto, VisitDto } from '../types/service';
 import ReviewForm from '../components/ReviewForm';
+import PropuestaComparisonModal from '../components/PropuestaComparisonModal';
 import { buildPropuestaPdf } from '../utils/propuestaPdf';
 import { slugify } from '../utils/slugify';
+
+const MAX_COMPARAR = 3;
 
 type TramiteItem =
   | { tipo: 'reserva'; data: ReservationDto; fecha: Date }
@@ -119,10 +123,14 @@ const handleCompartirPropuesta = async (propuesta: PropuestaDto) => {
 
 const PropuestaCard = ({
   data,
+  selected,
+  onToggleSelect,
   onCompartir,
   onEliminar,
 }: {
   data: PropuestaDto;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
   onCompartir: (propuesta: PropuestaDto) => void;
   onEliminar: (id: string) => void;
 }) => (
@@ -130,6 +138,15 @@ const PropuestaCard = ({
     <div className="tramite-card__badges">
       <span className="tramite-card__badge tramite-card__badge--propuesta">Propuesta</span>
     </div>
+    <label className="propuesta-card__compare-check">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect(data.id)}
+        aria-label={`Comparar ${data.nombre}`}
+      />
+      Comparar
+    </label>
     <h3 className="tramite-card__title">{data.nombre}</h3>
     <p className="tramite-card__date">{dateFmtShort.format(new Date(data.fechaCreacion))}</p>
 
@@ -172,6 +189,21 @@ const MisTramitesPage = () => {
   const [priceChoice, setPriceChoice] = useState<Record<string, 'min' | 'max'>>({});
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [reviewingReservaId, setReviewingReservaId] = useState<string | null>(null);
+  const [selectedPropuestaIds, setSelectedPropuestaIds] = useState<Set<string>>(new Set());
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+
+  const togglePropuestaSelected = (id: string) => {
+    if (!selectedPropuestaIds.has(id) && selectedPropuestaIds.size >= MAX_COMPARAR) {
+      toast.info(`Podés comparar hasta ${MAX_COMPARAR} propuestas a la vez.`);
+      return;
+    }
+    setSelectedPropuestaIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleReviewSubmitted = (resena: ResenaDto) => {
     setReservas(prev => prev.map(r => (r.id === resena.reservaId ? { ...r, resenaId: resena.id } : r)));
@@ -184,6 +216,12 @@ const MisTramitesPage = () => {
     try {
       await deletePropuesta(id);
       setPropuestas(prev => prev.filter(p => p.id !== id));
+      setSelectedPropuestaIds(prev => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch {
       setError('No se pudo eliminar la propuesta.');
     }
@@ -193,6 +231,7 @@ const MisTramitesPage = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsCalculatorOpen(false);
+        setIsComparisonOpen(false);
         setReviewingReservaId(null);
       }
     };
@@ -311,17 +350,32 @@ const MisTramitesPage = () => {
               propuestas.length === 0 ? (
                 <p className="mis-tramites__empty">Todavía no tenés propuestas guardadas.</p>
               ) : (
-                <ul className="mis-tramites__list" role="list">
-                  {propuestas.map(propuesta => (
-                    <li key={propuesta.id}>
-                      <PropuestaCard
-                        data={propuesta}
-                        onCompartir={handleCompartirPropuesta}
-                        onEliminar={handleEliminarPropuesta}
-                      />
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="mis-tramites__list" role="list">
+                    {propuestas.map(propuesta => (
+                      <li key={propuesta.id}>
+                        <PropuestaCard
+                          data={propuesta}
+                          selected={selectedPropuestaIds.has(propuesta.id)}
+                          onToggleSelect={togglePropuestaSelected}
+                          onCompartir={handleCompartirPropuesta}
+                          onEliminar={handleEliminarPropuesta}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                  {selectedPropuestaIds.size >= 2 && (
+                    <div className="mis-tramites__comparar-trigger">
+                      <button
+                        type="button"
+                        className="mis-tramites__calculator-btn"
+                        onClick={() => setIsComparisonOpen(true)}
+                      >
+                        Comparar ({selectedPropuestaIds.size})
+                      </button>
+                    </div>
+                  )}
+                </>
               )
             ) : filteredItems.length === 0 ? (
               <p className="mis-tramites__empty">{emptyMessage}</p>
@@ -452,6 +506,13 @@ const MisTramitesPage = () => {
                   </div>
                 </dialog>
               </div>
+            )}
+
+            {isComparisonOpen && (
+              <PropuestaComparisonModal
+                propuestas={propuestas.filter(p => selectedPropuestaIds.has(p.id))}
+                onClose={() => setIsComparisonOpen(false)}
+              />
             )}
 
             {reviewingReservaId && (

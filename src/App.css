@@ -579,6 +579,12 @@ a {
   line-height: 1.45;
 }
 
+.form-group__error {
+  color: #9b1c1c;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .form-group label {
   font-size: 0.9rem;
   font-weight: 700;
@@ -2146,6 +2152,44 @@ a {
   top: 1rem;
 }
 
+.services-filters__search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.services-filters__search-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.services-filters__search-input:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
+.services-filters__sort-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.services-filters__sort-select:hover,
+.services-filters__sort-select:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
 .services-filters__header {
   display: flex;
   justify-content: space-between;
@@ -3580,6 +3624,12 @@ a {
   transform: translateY(-1px);
 }
 
+.mis-tramites__comparar-trigger {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
 /* Calculator modal */
 
 .calculator-modal {
@@ -3645,6 +3695,148 @@ a {
 .calculator-modal__close:hover {
   background: var(--primary-soft);
   color: var(--primary);
+}
+
+/* Comparar propuestas modal */
+
+.comparar-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.comparar-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 17, 48, 0.5);
+  border: 0;
+  cursor: pointer;
+}
+
+.comparar-modal__box {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  box-shadow: var(--shadow);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comparar-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.comparar__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.comparar-modal__close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.comparar-modal__close:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.comparar__table-wrapper {
+  overflow-x: auto;
+}
+
+.comparar__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.comparar__table th {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.comparar__table thead th {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.comparar__table td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.comparar__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.comparar__precio {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.comparar__servicios-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.comparar__servicio-tipo {
+  font-style: italic;
+}
+
+.comparar__empty {
+  color: var(--text-muted);
+}
+
+.comparar__total--min {
+  background: rgba(22, 163, 74, 0.1);
+  font-weight: 700;
+  color: #15803d;
+}
+
+.comparar__badge-min {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803d;
 }
 
 /* ====== BookingDateTimePicker ====== */
@@ -4568,6 +4760,16 @@ a {
   margin-top: 0.4rem;
 }
 
+.propuesta-card__compare-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: fit-content;
+}
+
 .tramite-card__delete {
   padding: 0.5rem 1rem;
   background: transparent;
@@ -4581,4 +4783,103 @@ a {
 
 .tramite-card__delete:hover {
   background: rgba(220, 38, 38, 0.08);
+}
+
+.contact-page {
+  padding: 2rem 1rem 4rem;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.contact-page__header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.contact-page__header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.contact-page__header p {
+  color: var(--text-muted);
+}
+
+.contact-page__general {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  margin: 0 auto 3rem;
+  max-width: 640px;
+  border-radius: 1.2rem;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.contact-page__general a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.contact-page__general a:hover {
+  text-decoration: underline;
+}
+
+.contact-page__team h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.contact-page__team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .contact-page__team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dev-card {
+  padding: 1.75rem;
+  border-radius: 1.4rem;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.dev-card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.25rem;
+}
+
+.dev-card__role {
+  color: var(--text-muted);
+  margin: 0 0 1.1rem;
+  font-size: 0.9rem;
+}
+
+.dev-card__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.dev-card__links a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dev-card__links a:hover {
+  text-decoration: underline;
 }

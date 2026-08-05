@@ -14,6 +14,7 @@ import ServiceReservationPage from '../pages/ServiceReservationPage';
 import HomePage from '../pages/HomePage';
 import ServicesListPage from '../pages/ServicesListPage';
 import MisTramitesPage from '../pages/MisTramitesPage';
+import ContactPage from '../pages/ContactPage';
 import { getServiceById } from '../services/serviceService';
 import { getResenasByServiceId } from '../services/resenaService';
 import type { ResenaDto, Service } from '../types/service';
@@ -524,6 +525,7 @@ const AppRouter = () => {
           <Route path="/lounges" element={<ServicesListPage />} />
           <Route path="/lounges/:id" element={<ServiceDetailPage />} />
           <Route path="/services" element={<ServicesListPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/services/:id" element={<ServiceDetailPage />} />
           <Route
             path="/services/:id/agendar"
