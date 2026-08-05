@@ -7,6 +7,7 @@ import { getBarriosByDepartamento, getDepartamentos, type BarrioOption, type Dep
 import { generateFilters } from '../services/assistantService';
 import type { Service } from '../types/service';
 import AgregarAPropuestaButton from '../components/AgregarAPropuestaButton';
+import bookitoFull from '../assets/bookito-mascot-full.png';
 
 const normalizeType = (value: string) =>
   value
@@ -310,29 +311,47 @@ const ServicesListPage = () => {
       </div>
 
       <div className="ai-filters">
-        <label htmlFor="ai-descripcion" className="ai-filters__label">
-          Buscar con IA
-        </label>
-        <textarea
-          id="ai-descripcion"
-          className="ai-filters__textarea"
-          placeholder="Describí tu evento (ej: 'casamiento para 150 personas en Montevideo, presupuesto medio')"
-          value={aiDescripcion}
-          onChange={(e) => setAiDescripcion(e.target.value)}
-          maxLength={500}
-          rows={2}
-          disabled={isGeneratingFilters}
+        <img
+          src={bookitoFull.src}
+          alt="Bookito, asistente virtual con inteligencia artificial"
+          width={170}
+          height={214}
+          className="ai-filters__mascot"
         />
-        <div className="ai-filters__footer">
-          <button
-            type="button"
-            className="ai-filters__submit"
-            onClick={handleGenerateFilters}
-            disabled={isGeneratingFilters || !aiDescripcion.trim()}
-          >
-            {isGeneratingFilters ? 'Buscando...' : 'Buscar con IA'}
-          </button>
-          {aiFeedback && <span className="ai-filters__feedback">{aiFeedback}</span>}
+        <div className="ai-filters__body">
+          <div className="ai-filters__heading">
+            <span className="ai-badge" aria-hidden="true">
+              <span className="ai-badge__sparkle">✨</span>IA
+            </span>
+            <span className="ai-filters__eyebrow">Preguntale a Bookito</span>
+          </div>
+          <label htmlFor="ai-descripcion" className="ai-filters__label">
+            Buscar con IA
+          </label>
+          <span className="ai-filters__subtitle">
+            Contale qué evento estás organizando y aplicamos los filtros por vos automáticamente.
+          </span>
+          <textarea
+            id="ai-descripcion"
+            className="ai-filters__textarea"
+            placeholder="Describí tu evento (ej: 'casamiento para 150 personas en Montevideo, presupuesto medio')"
+            value={aiDescripcion}
+            onChange={(e) => setAiDescripcion(e.target.value)}
+            maxLength={500}
+            rows={2}
+            disabled={isGeneratingFilters}
+          />
+          <div className="ai-filters__footer">
+            <button
+              type="button"
+              className="ai-filters__submit"
+              onClick={handleGenerateFilters}
+              disabled={isGeneratingFilters || !aiDescripcion.trim()}
+            >
+              {isGeneratingFilters ? 'Buscando...' : 'Buscar con IA'}
+            </button>
+            {aiFeedback && <span className="ai-filters__feedback">{aiFeedback}</span>}
+          </div>
         </div>
       </div>
 

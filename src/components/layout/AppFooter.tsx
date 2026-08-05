@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import logoBookit from '../../assets/logo-bookit-mark.png';
 
 const AppFooter = () => {
   const year = new Date().getFullYear();
@@ -8,7 +9,7 @@ const AppFooter = () => {
       <div className="app-shell app-footer__inner">
         <div className="app-footer__brand">
           <Link to="/" className="app-brand app-brand--footer">
-            <span className="app-brand__mark">✦</span>
+            <img src={logoBookit.src} alt="" width={32} height={32} className="app-brand__mark" />
             <span className="app-brand__text">BookIt</span>
           </Link>
           <p>

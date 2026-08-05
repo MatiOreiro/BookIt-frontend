@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { toast } from 'react-toastify';
 import { askAssistant } from '../services/assistantService';
+import bookitoAvatar from '../assets/bookito-mascot-avatar.png';
+import bookitoFull from '../assets/bookito-mascot-full.png';
 
 interface AssistantChatProps {
   serviceId: string;
@@ -16,6 +18,8 @@ const AssistantChat = ({ serviceId }: AssistantChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pregunta, setPregunta] = useState('');
   const [isSending, setIsSending] = useState(false);
+  // Solo presentacional: apaga el glow de "novedad" del botón flotante tras la primera apertura.
+  const [hasBeenOpened, setHasBeenOpened] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,12 +41,30 @@ const AssistantChat = ({ serviceId }: AssistantChatProps) => {
     }
   };
 
+  const toggleClasses = [
+    'assistant-chat__toggle',
+    isOpen ? 'assistant-chat__toggle--active' : '',
+    !isOpen && !hasBeenOpened ? 'assistant-chat__toggle--glow' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className="assistant-chat">
       {isOpen && (
         <div className="assistant-chat__panel">
           <div className="assistant-chat__header">
-            <span>Asistente virtual</span>
+          <img
+            src={bookitoAvatar.src}
+            alt="Bookito, asistente virtual con inteligencia artificial"
+            width={72}
+            height={72}
+            className="assistant-chat__panel-mascot"
+          />
+            <div className="assistant-chat__header-text">
+              <span className="assistant-chat__header-name">Bookito</span>
+              <span className="assistant-chat__header-subtitle">Tu asistente con IA</span>
+            </div>
             <button
               type="button"
               className="assistant-chat__close"
@@ -55,9 +77,18 @@ const AssistantChat = ({ serviceId }: AssistantChatProps) => {
 
           <div className="assistant-chat__messages">
             {messages.length === 0 && (
-              <p className="assistant-chat__empty">
-                Preguntame lo que quieras saber sobre esta publicación.
-              </p>
+              <div className="assistant-chat__empty">
+                <img
+                  src={bookitoFull.src}
+                  alt="Bookito, asistente virtual con inteligencia artificial"
+                  width={140}
+                  height={176}
+                  className="assistant-chat__empty-mascot"
+                />
+                <p className="assistant-chat__empty-text">
+                  Preguntame lo que quieras saber sobre esta publicación.
+                </p>
+              </div>
             )}
 
             {messages.map((message, index) => (
@@ -94,11 +125,32 @@ const AssistantChat = ({ serviceId }: AssistantChatProps) => {
 
       <button
         type="button"
-        className="assistant-chat__toggle"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-label={isOpen ? 'Cerrar asistente' : 'Abrir asistente'}
+        className={toggleClasses}
+        onClick={() => {
+          setIsOpen((prev) => !prev);
+          setHasBeenOpened(true);
+        }}
+        aria-label={isOpen ? 'Cerrar a Bookito, asistente virtual con inteligencia artificial' : 'Abrir a Bookito, asistente virtual con inteligencia artificial'}
       >
-        {isOpen ? '✕' : '💬'}
+        {isOpen ? (
+          <span className="assistant-chat__toggle-close" aria-hidden="true">✕</span>
+        ) : (
+          <span className="assistant-chat__toggle-content">
+            <span className="assistant-chat__toggle-label">Preguntale a Bookito</span>
+            <span className="assistant-chat__toggle-avatar-wrap">
+              <img
+                src={bookitoAvatar.src}
+                alt="Bookito, asistente virtual con inteligencia artificial"
+                width={76}
+                height={76}
+                className="assistant-chat__toggle-avatar"
+              />
+              {/*  <span className="ai-badge assistant-chat__toggle-badge" aria-hidden="true">
+                <span className="ai-badge__sparkle">✨</span>IA
+              </span> */}
+            </span>
+          </span>
+        )}
       </button>
     </div>
   );
